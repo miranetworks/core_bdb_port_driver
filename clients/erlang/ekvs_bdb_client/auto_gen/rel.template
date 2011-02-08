@@ -1,0 +1,16 @@
+{release, 
+
+    {"mira_ekvs_bdb_client_%APP_VER%","mira_ekvs_bdb_client-%APP_DVER%"}, {erts, "%ERTS_DVER%"}, 
+
+    [
+
+    {yaws,                 "1.75",  load},
+
+    {mira_ekvs_bdb_client, "%APP_DVER%"},
+
+    {kernel, "%KERNEL_DVER%"},
+
+    {stdlib, "%STDLIB_DVER%"}
+    ]
+
+}.

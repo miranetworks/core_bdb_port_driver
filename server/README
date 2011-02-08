@@ -1,0 +1,13 @@
+$Id$
+
+The Key-Value-Store-Berkeley-Database (kvs_bdb) app is a tcp/ip server wrapper 
+around a Berkeley BTREE database.
+
+Run make to build the application - refer to the README.build for more info
+
+To get a list of the command line parameters, run: 
+
+        ./bin/kvs_bdb -h
+
+
+EOF

@@ -1,0 +1,11 @@
+GCC=gcc
+LDFLAGS=-shared -ldb
+SRCS=`ls *.c`
+OUTPUT=kvs_bdb_drv.so
+CFLAGS=%ERLANG_INCLUDES% -Wall -O3 -o ${OUTPUT}
+
+all:
+	@${GCC} ${SRCS} ${LDFLAGS} ${CFLAGS}
+
+clean:
+	rm -rf ${OUTPUT}

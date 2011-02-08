@@ -1,0 +1,13 @@
+{release, 
+
+    {"mira_bdb_port_driver_%APP_VER%","mira_bdb_port_driver-%APP_DVER%"}, {erts, "%ERTS_DVER%"}, 
+
+    [
+    {mira_bdb_port_driver, "%APP_DVER%"},
+
+    {kernel, "%KERNEL_DVER%"},
+
+    {stdlib, "%STDLIB_DVER%"}
+    ]
+
+}.

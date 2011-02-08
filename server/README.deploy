@@ -1,0 +1,84 @@
+$Id$
+
+Eventually this app should be deployed as a proper .deb package, in 
+the meanwhile, this will have to suffice.
+
+*It is assumed that you've successfully built the executable...
+
+On the build machine:
+
+1. Build the app
+----------------
+
+    make
+
+    *Should yield file ./scripts/usr/sbin/kvs_bdb
+
+2. Tarball the scripts directory
+--------------------------------
+
+    tar -czf kvs_bdb_package.tgz scripts
+
+
+3. Copy the tarball to the target machine
+-----------------------------------------
+
+    scp kvs_bdb_package.tgz YOUR_SCP_USERNAME@TARGET:.
+
+
+
+
+
+On the target machine:
+
+1. Create the kvsbdb user
+-------------------------
+
+    (As root)
+
+    adduser --disabled-password kvsbdb
+
+2. Install the berkeley db libs
+-------------------------------
+
+    (As root)
+
+    apt-get install libdb4.7
+
+
+3. Unpack the tarball  
+---------------------
+
+    (As root)
+
+    su kvsbdb
+
+    cd
+
+    cp /home/YOUR_SCP_USERNAME/kvs_bdb_package.tgz .
+
+    tar -xzf kvs_bdb_package.tgz
+
+    mv scripts deploy
+
+    exit
+
+    (As root)
+
+    ln -s /home/kvsbdb/deploy/etc/init.d/kvs_bdb /etc/init.d/kvs_bdb
+
+    ln -s /home/kvsbdb/deploy/usr/sbin/start_kvs_bdb.sh /usr/sbin/start_kvs_bdb.sh
+    ln -s /home/kvsbdb/deploy/usr/sbin/stop_kvs_bdb.sh /usr/sbin/stop_kvs_bdb.sh
+
+    Verify the startup/shutdown sequences by analyzing the output of:
+
+    update-rc.d -n kvs_bdb defaults
+
+    If the sequences are ok run:
+
+    update-rc.d kvs_bdb defaults
+
+    If not, man update-rc.d to see how to set the sequencing manually.
+
+
+EOF
