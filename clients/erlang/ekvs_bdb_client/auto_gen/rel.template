@@ -4,7 +4,7 @@
 
     [
 
-    {yaws,                 "1.75",  load},
+    {yaws,                 "1.89",  load},
 
     {mira_ekvs_bdb_client, "%APP_DVER%"},
 
