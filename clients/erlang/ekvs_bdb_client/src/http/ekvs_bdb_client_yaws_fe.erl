@@ -21,7 +21,7 @@ start() ->
 	
 	    GC = yaws_config:make_default_gconf(false, undefined),
 
-	    GC1 = GC#gconf{tmpdir="./priv/"},
+	    GC1 = GC,%#gconf{tmpdir="./priv/"},
 
         Interface = pt_util_app:get_app_param(mira_ekvs_bdb_client, http_ext_if, {127,0,0,1}),
 
