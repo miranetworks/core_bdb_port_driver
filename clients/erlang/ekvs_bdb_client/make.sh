@@ -12,6 +12,8 @@ BUILD_DIR=`pwd`
 
 source ./env
 
+mkdir -p ${BUILD_DIR}/ebin
+
 cat ${BUILD_DIR}/auto_gen/app.template | sed "s|%APP_NAME%|${APP_NAME}|g" | sed "s|%APP_DVER%|${APP_DVER}|g" | sed "s|%APP_MODULES%||g" > ${BUILD_DIR}/ebin/${APP_NAME}.app
 
 if [ ${ERTS_VER} -ge 574 ]; then
