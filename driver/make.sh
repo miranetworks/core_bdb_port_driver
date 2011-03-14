@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#$Id$
-
 START_DIR=`pwd`
 
 BUILD_DIR=`echo $0 | sed "s|/make.sh||"`
@@ -12,16 +10,11 @@ BUILD_DIR=`pwd`
 
 source ./env
 
+mkdir -p "./ebin"
+
 cat ${BUILD_DIR}/auto_gen/app.template | sed "s|%APP_NAME%|${APP_NAME}|g" | sed "s|%APP_DVER%|${APP_DVER}|g" | sed "s|%APP_MODULES%||g" > ${BUILD_DIR}/ebin/${APP_NAME}.app
 
-if [ ${ERTS_VER} -ge 574 ]; then
-    DONT_USE_EUNIT=""
-    
-else
-    DONT_USE_EUNIT="{d, 'DONT_USE_EUNIT'},"
-fi
-
-cat ${BUILD_DIR}/auto_gen/Emakefile.template | sed "s|%DONT_USE_EUNIT%|${DONT_USE_EUNIT}|g" > ${BUILD_DIR}/Emakefile
+cat ${BUILD_DIR}/auto_gen/Emakefile.template > ${BUILD_DIR}/Emakefile
 
 ERL_USR_INCLUDE_DIR="${BINDIR}/../../usr/include"
 ERL_EI=`ls ${BINDIR}/../../lib/ | grep "erl_interface-"`

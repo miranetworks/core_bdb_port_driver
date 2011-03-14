@@ -1,6 +1,5 @@
-%$Id$
 
-{'src/*',      [%DONT_USE_EUNIT% {outdir, "ebin"}, {i, "include"}]}.
-{'tests/*',    [%DONT_USE_EUNIT% {outdir, "ebin"}, {i, "include"}]}.
+{'src/*',      [{outdir, "ebin"}, {i, "include"}]}.
+{'tests/*',    [{outdir, "ebin"}, {i, "include"}]}.
 
 %EOF
