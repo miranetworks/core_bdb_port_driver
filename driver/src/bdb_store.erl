@@ -1,4 +1,3 @@
-% $Id$
 -module(bdb_store).
 -behaviour(supervisor).
 
@@ -7,7 +6,7 @@
         init/1
         ]).
 
--export([set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1]).
+-export([set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4]).
 
 
 set(DbName, Key, Value)->
@@ -33,6 +32,9 @@ truncate(DbName)->
 
 compact(DbName)->
     bdb_port_driver_proxy:compact(DbName).
+
+fold(DbName, Fun, Acc, BatchSize)->
+    bdb_port_driver_proxy:fold(DbName, Fun, Acc, BatchSize).
 
 
 % Interface functions

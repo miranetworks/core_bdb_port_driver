@@ -1,9 +1,10 @@
-%$Id$
 -module(bdb_port_driver).
 
 -behaviour(gen_server).
 
--export([start_link/3, stop/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3]).
+-include("bdb_port_driver.hrl").
+
+-export([start_link/3, stop/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/4]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -11,43 +12,45 @@
 -define('DRIVER_NAME', 'kvs_bdb_drv').
 
 -record(state, {port}).
+-define(NAME(DbName), {global, {?MODULE, DbName}}).
+
 
 start_link(DbName, DataDir, Options) ->
-    gen_server:start_link(make_name(DbName), ?MODULE, [DbName, DataDir, Options], []).
+    gen_server:start_link(?NAME(DbName), ?MODULE, [DbName, DataDir, Options], []).
 
 stop(DbName)->
-    gen_server:cast(make_name(DbName), stop). 
+    gen_server:cast(?NAME(DbName), stop). 
 
 set(DbName, Key, Value)->
-    gen_server:call(make_name(DbName), {set, Key, Value}, infinity).
+    gen_server:call(?NAME(DbName), {set, Key, Value}, infinity).
 
 get(DbName, Key)->
-    gen_server:call(make_name(DbName), {get, Key}, infinity).
+    gen_server:call(?NAME(DbName), {get, Key}, infinity).
 
 del(DbName, Key)->
-    gen_server:call(make_name(DbName), {del, Key}, infinity).
+    gen_server:call(?NAME(DbName), {del, Key}, infinity).
 
 count(DbName)->
-    gen_server:call(make_name(DbName), count, infinity).
+    gen_server:call(?NAME(DbName), count, infinity).
 
 sync(DbName)->
-    gen_server:call(make_name(DbName), sync, infinity).
+    gen_server:call(?NAME(DbName), sync, infinity).
 
 bulk_get(DbName, Offset, Count)->
-    gen_server:call(make_name(DbName), {bulk_get, Offset, Count}, infinity).
+    gen_server:call(?NAME(DbName), {bulk_get, Offset, Count}, infinity).
 
 truncate(DbName)->
-    gen_server:call(make_name(DbName), truncate, infinity).
+    gen_server:call(?NAME(DbName), truncate, infinity).
 
 compact(DbName)->
-    gen_server:call(make_name(DbName), compact, infinity).
+    gen_server:call(?NAME(DbName), compact, infinity).
 
 add_replication_node(DbName, StringIpAddr, Port)->
-    gen_server:call(make_name(DbName), {add_replication_node, StringIpAddr, Port}, infinity).
+    gen_server:call(?NAME(DbName), {add_replication_node, StringIpAddr, Port}, infinity).
 
+fold(DbName, Fun, Acc, BatchSize)->
+    gen_server:call(?NAME(DbName), {fold, Fun, Acc, BatchSize}, infinity).
 
-make_name(DbName)->
-    {global, {?MODULE, DbName}}.
 
 %Options: List of {option, value} pairs where option can be:
 %
@@ -162,7 +165,7 @@ init([DbName, DataDir, Options]) ->
     	    {ok, #state{port=Port}};
 
         Error ->
-            io:format("[~p] ~p~n", [DbName, Error]),
+            ?warn({?MODULE, DbName, Error}),
             Error
         end;
 
@@ -233,6 +236,21 @@ handle_call({bulk_get, Offset, Count}, _From, State)
     {reply, Reply, State};
 
 
+handle_call({fold, Fun, Acc, BatchSize}, _From, State) ->
+
+    Reply =
+    case catch(traverse_fold(State#state.port, Fun, Acc, 1, BatchSize)) of
+    {'EXIT', _} = Ex ->
+        {error, Ex};
+
+    NewAcc ->
+        NewAcc
+
+    end,
+
+    {reply, Reply, State};
+
+
 handle_call({set, Key, Value}, _From, State)
   when is_binary(Key) and is_binary(Value) ->
 
@@ -270,18 +288,18 @@ handle_call({del, Key}, _From, State)
     {reply, Reply, State};
 
 handle_call(Request, _From, State) ->
-    error_logger:info_report({?MODULE, {unexpected, {handle_call, Request}}}),
+    ?warn({unexpected, {handle_call, Request}}),
     {noreply, State}.
 
 handle_cast(stop, State) ->
     {stop, normal, State};
 
 handle_cast(Msg, State) ->
-    error_logger:info_report({?MODULE, {unexpected, {handle_cast, Msg}}}),
+    ?warn({unexpected, {handle_cast, Msg}}),
     {noreply, State}.
 
 handle_info({'EXIT', Port, Reason}, #state{port = Port} = State) ->
-    error_logger:info_report({?MODULE, {port_died, Reason}}),
+    ?warn({port_died, Reason}),
     {stop, {port_terminated, Reason}, State};
 
 handle_info(_Info, State) ->
@@ -316,4 +334,37 @@ option(Name, List, Default)->
     _ ->
         Default
     end.
+
+
+traverse_fold(Port, Fun, Acc, Offset, Count) ->
+
+    Cmd = $B,
+
+    Message =  <<Cmd:8/unsigned-big-integer, Offset:32/unsigned-big-integer, Count:32/unsigned-big-integer>>,
+
+    case send_command(Port, Message) of
+    {ok, []} ->
+        %EOS
+        {ok, Acc};
+
+    {ok, Data} ->
+
+        NewAcc = traverse_fold_batch(Fun, Acc, Data),
+
+        traverse_fold(Port, Fun, NewAcc, Offset + length(Data), Count);
+
+
+    Error ->
+        {error, Error}
+
+    end.
+
+traverse_fold_batch(Fun, Acc, [{LKey, LData} | T]) ->
+
+    NewAcc = Fun(list_to_binary(LKey), list_to_binary(LData), Acc),
+
+    traverse_fold_batch(Fun, NewAcc, T);
+
+traverse_fold_batch(_, Acc, []) -> Acc.
+
 

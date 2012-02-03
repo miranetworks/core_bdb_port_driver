@@ -22,7 +22,15 @@ ERL_EI_INCLUDE_DIR="${BINDIR}/../../lib/${ERL_EI}/include"
 
 ERL_INCLUDES="-I${ERL_USR_INCLUDE_DIR} -I${ERL_EI_INCLUDE_DIR}"
 
-cat ${BUILD_DIR}/auto_gen/Makefile.priv | sed "s|%ERLANG_INCLUDES%|${ERL_INCLUDES}|g" > ${BUILD_DIR}/priv/Makefile
+PATH_TO_LIBDB=`ldconfig -p | grep libdb-4.6 | awk '{print $NF}'`
+
+if [ -z "${PATH_TO_LIBDB}" ]; then
+    cd ${START_DIR}
+    echo "libdb-4.6 not installed !"
+    exit 1
+fi
+
+cat ${BUILD_DIR}/auto_gen/Makefile.priv | sed "s|%ERLANG_INCLUDES%|${ERL_INCLUDES}|g" | sed "s|%PATH_TO_LIBDB%|${PATH_TO_LIBDB}|g" > ${BUILD_DIR}/priv/Makefile
 
 rm -fr ${BUILD_DIR}/make.sh.out
 

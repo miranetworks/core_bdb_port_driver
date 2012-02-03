@@ -1,51 +1,69 @@
-%$Id$
 -module(bdb_port_driver_proxy).
 
 -behaviour(gen_server).
 
--export([start_link/1, stop/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1]).
+-export([start_link/1, stop/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
+-define(NAME(DB), {global, {?MODULE, DB}}).
+
+
 start_link(DbName) ->
-    gen_server:start_link(make_name(DbName), ?MODULE, [DbName], []).
+    gen_server:start_link(?NAME(DbName), ?MODULE, [DbName], []).
 
 stop(DbName)->
-    gen_server:cast(make_name(DbName), stop). 
+    gen_server:cast(?NAME(DbName), stop). 
 
 set(DbName, Key, Value)->
-    gen_server:call(make_name(DbName), {set, Key, Value}, infinity).
+    gen_server:call(?NAME(DbName), {set, Key, Value}, infinity).
 
 get(DbName, Key)->
-    gen_server:call(make_name(DbName), {get, Key}, infinity).
+    gen_server:call(?NAME(DbName), {get, Key}, infinity).
 
 del(DbName, Key)->
-    gen_server:call(make_name(DbName), {del, Key}, infinity).
+    gen_server:call(?NAME(DbName), {del, Key}, infinity).
 
 count(DbName)->
-    gen_server:call(make_name(DbName), count, infinity).
+    gen_server:call(?NAME(DbName), count, infinity).
 
 sync(DbName)->
-    gen_server:call(make_name(DbName), sync, infinity).
+    gen_server:call(?NAME(DbName), sync, infinity).
 
 bulk_get(DbName, Offset, Count)->
-    gen_server:call(make_name(DbName), {bulk_get, Offset, Count}, infinity).
+    gen_server:call(?NAME(DbName), {bulk_get, Offset, Count}, infinity).
 
 truncate(DbName)->
-    gen_server:call(make_name(DbName), truncate, infinity).
+    gen_server:call(?NAME(DbName), truncate, infinity).
 
 compact(DbName)->
-    gen_server:call(make_name(DbName), compact, infinity).
+    gen_server:call(?NAME(DbName), compact, infinity).
+
+fold(DbName, Fun, Acc, BatchSize)->
+    gen_server:call(?NAME(DbName), {fold, Fun, Acc, BatchSize}, infinity).
 
 
-
-make_name(DbName)->
-    {global, {?MODULE, DbName}}.
 
 
 init([DbName]) ->
     {ok, DbName}.
+
+handle_call({fold, Fun, Acc, BatchSize}, _From, DbName) ->
+
+    Reply =
+
+    case catch(bdb_port_driver:fold(DbName, Fun, Acc, BatchSize)) of
+    {'EXIT', Err} ->
+        {error, Err};
+
+    Rsp ->
+        Rsp
+
+    end,
+
+    {reply, Reply, DbName};
+
 
 handle_call(truncate, _From, DbName) ->
 
