@@ -1,6 +1,0 @@
-env
-ebin
-*.sh.out
-priv/Makefile
-priv/kvs_bdb_drv.so
-Emakefile
