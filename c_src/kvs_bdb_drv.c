@@ -1,4 +1,3 @@
-//$Id$
 #include "kvs_bdb_drv.h"
 
 static void return_error_tuple(bdb_drv_t* pdrv, char* err_msg) {
@@ -44,7 +43,7 @@ static ErlDrvEntry basic_driver_entry = {
     NULL,                             /* output */
     NULL,                             /* ready_input */
     NULL,                             /* ready_output */
-    "kvs_bdb_drv",                        /* the name of the driver */
+    "mira_bdb_port_driver_drv",                        /* the name of the driver */
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */
@@ -66,7 +65,7 @@ static ErlDrvEntry basic_driver_entry = {
     NULL,                             /* output */
     NULL,                             /* ready_input */
     NULL,                             /* ready_output */
-    "kvs_bdb_drv",                        /* the name of the driver */
+    "mira_bdb_port_driver_drv",                        /* the name of the driver */
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */

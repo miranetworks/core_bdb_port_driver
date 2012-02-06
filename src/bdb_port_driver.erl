@@ -9,7 +9,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
--define('DRIVER_NAME', 'kvs_bdb_drv').
+-define('DRIVER_NAME', 'mira_bdb_port_driver_drv').
 
 -record(state, {port}).
 -define(NAME(DbName), {global, {?MODULE, DbName}}).
@@ -65,8 +65,10 @@ fold(DbName, Fun, Acc, BatchSize)->
 %                   Type -> master | client | election
 
 init([DbName, DataDir, Options]) ->
-
+ 
     process_flag(trap_exit, true),
+
+    ok = filelib:ensure_dir(DataDir ++ "/"),
 
     TxnEnabled                 = option(txn_enabled, Options, true),
     DbType                     = option(db_type,     Options, btree),

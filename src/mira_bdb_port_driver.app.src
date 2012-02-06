@@ -1,0 +1,22 @@
+{application, mira_bdb_port_driver,
+
+    [
+
+    {description, "mira_bdb_port_driver"},
+
+    {vsn, "0.0.10"},
+
+    {id, "mira_bdb_port_driver"},
+
+    {modules,   [
+
+                ]
+    },
+
+    {registered, []},
+
+    {applications, [kernel, stdlib]}
+
+    ]
+
+}.
