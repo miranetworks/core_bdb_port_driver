@@ -7,13 +7,13 @@
 
 insert_test() ->
 
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
     {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
 
     ?assert(is_pid(Pid)),
-
-    ?assertEqual(ok, bdb_store:truncate("test")),
-
-    ?assertEqual(ok, bdb_store:sync("test")),
 
     ?assertEqual({ok, 0},  bdb_store:count("test")),
 
@@ -47,6 +47,21 @@ insert_test() ->
 
     ?assertEqual(ok, bdb_store:sync("test")),
 
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+
+fold_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
     ?assertEqual({ok, 0},  bdb_store:count("test")),
 
     ?assertEqual(ok, loop_insert(100)),
@@ -59,6 +74,52 @@ insert_test() ->
 
     ?assertEqual({ok, 100}, bdb_store:fold("test", F, 0, 1000)),
 
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+
+fold_nonlock_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(100)),
+
+    F = fun (_, _, Acc) ->
+
+        Acc + 1
+
+    end,
+
+    ?assertEqual({ok, 100}, bdb_store:fold_nonlock("test", F, 0, 1000)),
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+
+bulk_get_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(100)),
+
     ?assertMatch({ok, _}, bdb_store:bulk_get("test", 1, 1000)),
 
     {ok, BG1} = bdb_store:bulk_get("test", 1, 1000),
@@ -68,7 +129,6 @@ insert_test() ->
     ExpectedKey = binary_to_list(term_to_binary(50)),
 
     ?assertEqual({ok, [{ExpectedKey, "V50"}]}, bdb_store:bulk_get("test", 50, 1)),
-
 
     ?assertEqual(ok, bdb_store:compact("test")),
 

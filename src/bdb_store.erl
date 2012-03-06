@@ -6,7 +6,7 @@
         init/1
         ]).
 
--export([set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4]).
+-export([set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4, fold_nonlock/4]).
 
 
 set(DbName, Key, Value)->
@@ -36,6 +36,9 @@ compact(DbName)->
 fold(DbName, Fun, Acc, BatchSize)->
     bdb_port_driver_proxy:fold(DbName, Fun, Acc, BatchSize).
 
+fold_nonlock(DbName, Fun, Acc, BatchSize) ->
+    do_fold_nonlock(DbName, Fun, Acc, 1, BatchSize).
+
 
 % Interface functions
 start_link(DbName, DataDir, Options) -> 
@@ -56,6 +59,31 @@ init([DbName, DataDir, Options]) ->
         permanent, 600000, worker, [bdb_port_driver_proxy]},
 
 	{ok, { RestartSpec, [PortDrvSpec, PortDrvProxySpec] }}.
+
+%Worker funcs
+do_fold_nonlock(DbName, Fun, Acc, Start, BatchSize) ->
+
+    case bdb_port_driver_proxy:bulk_get(DbName, Start, BatchSize) of
+    {ok, []} ->
+
+        {ok, Acc};
+
+    {ok, KVList} ->
+
+        NewAcc = loop_fold_nonlock(Fun, Acc, KVList),
+
+        do_fold_nonlock(DbName, Fun, NewAcc, Start + length(KVList), BatchSize)
+
+    end.
+
+loop_fold_nonlock(Fun, Acc, [{LKey, LValue} | T]) ->
+
+    NewAcc = Fun(list_to_binary(LKey), list_to_binary(LValue), Acc),
+
+    loop_fold_nonlock(Fun, NewAcc, T);
+
+loop_fold_nonlock(_Fun, Acc, []) -> Acc.
+
 
 
 % EOF
