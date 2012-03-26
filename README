@@ -1,2 +1,6 @@
-$Id: create_app.sh 120 2010-03-08 08:23:07Z ruanj $
-EOF
+
+This is a library application that provides an erlang port driver to 
+libdb (v4.6) - Berkeley DB for fast & efficient KV storage.
+
+NOTE: Only a subset of the libdb API has been implemented.
+

@@ -58,7 +58,24 @@ init([DbName, DataDir, Options]) ->
         {bdb_port_driver_proxy, start_link, [DbName]},
         permanent, 600000, worker, [bdb_port_driver_proxy]},
 
-	{ok, { RestartSpec, [PortDrvSpec, PortDrvProxySpec] }}.
+
+    {ok, { RestartSpec, [PortDrvSpec, PortDrvProxySpec] ++
+
+        case check_autosync(Options) of
+        {ok, SyncIntervalMs} ->   
+
+            [{bdb_port_driver_sync,
+                {bdb_port_driver_sync, start_link, [DbName, SyncIntervalMs]},
+                permanent, 600000, worker, [bdb_port_driver_sync]}];
+
+        _ ->
+            []
+
+        end 
+    
+    }}.
+
+    
 
 %Worker funcs
 do_fold_nonlock(DbName, Fun, Acc, Start, BatchSize) ->
@@ -84,6 +101,14 @@ loop_fold_nonlock(Fun, Acc, [{LKey, LValue} | T]) ->
 
 loop_fold_nonlock(_Fun, Acc, []) -> Acc.
 
+check_autosync(Options) ->
 
+    case proplists:get_value(sync, Options) of
+    Value when is_integer(Value) and (Value > 0) ->
+        {ok, Value};
+
+    _ ->
+        false
+    end.
 
 % EOF

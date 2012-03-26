@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, stop/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4]).
+-export([start_link/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -12,9 +12,6 @@
 
 start_link(DbName) ->
     gen_server:start_link(?NAME(DbName), ?MODULE, [DbName], []).
-
-stop(DbName)->
-    gen_server:cast(?NAME(DbName), stop). 
 
 set(DbName, Key, Value)->
     gen_server:call(?NAME(DbName), {set, Key, Value}, infinity).
@@ -193,11 +190,7 @@ handle_call({del, Key}, _From, DbName)
     {reply, Reply, DbName};
 
 handle_call(_Request, _From, DbName) ->
-    Reply = {error, unkown_call},
-    {reply, Reply, DbName}.
-
-handle_cast(stop, State) ->
-    {stop, normal, State};
+    {noreply, DbName}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.

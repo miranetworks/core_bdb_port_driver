@@ -4,7 +4,7 @@
 
 -include("bdb_port_driver.hrl").
 
--export([start_link/3, stop/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/4]).
+-export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/4]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -17,9 +17,6 @@
 
 start_link(DbName, DataDir, Options) ->
     gen_server:start_link(?NAME(DbName), ?MODULE, [DbName, DataDir, Options], []).
-
-stop(DbName)->
-    gen_server:cast(?NAME(DbName), stop). 
 
 set(DbName, Key, Value)->
     gen_server:call(?NAME(DbName), {set, Key, Value}, infinity).
@@ -53,7 +50,8 @@ fold(DbName, Fun, Acc, BatchSize)->
 
 
 %Options: List of {option, value} pairs where option can be:
-%
+%   
+%   sync        -> integer() > 0 (Will call bdb_store:sync at "sync" milliseconds intervals)
 %   txn_enabled -> true | false (Must be true for replication)
 %   db_type     -> btree | hash
 %   cache_size  -> integer() (Size of the in memory cahc in bytes - must be a multiple of 1024 !!!)
@@ -292,9 +290,6 @@ handle_call({del, Key}, _From, State)
 handle_call(Request, _From, State) ->
     ?warn({unexpected, {handle_call, Request}}),
     {noreply, State}.
-
-handle_cast(stop, State) ->
-    {stop, normal, State};
 
 handle_cast(Msg, State) ->
     ?warn({unexpected, {handle_cast, Msg}}),

@@ -142,6 +142,26 @@ bulk_get_test() ->
 
     exit(Pid, kill).
 
+sync_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}, {sync, 5000}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assert(undefined =/= global:whereis_name({bdb_port_driver_sync, "test"})),
+
+    ?assertEqual(ok, bdb_port_driver_sync:sync("test")),
+
+    ?assertEqual(ok, bdb_store:sync("test")),
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
 
 
 loop_insert(0)->
