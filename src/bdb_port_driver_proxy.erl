@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4]).
+-export([start_link/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/5, foldr/5]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -37,20 +37,36 @@ truncate(DbName)->
 compact(DbName)->
     gen_server:call(?NAME(DbName), compact, infinity).
 
-fold(DbName, Fun, Acc, BatchSize)->
-    gen_server:call(?NAME(DbName), {fold, Fun, Acc, BatchSize}, infinity).
+fold(DbName, Fun, Acc, Start, BatchSize)->
+    gen_server:call(?NAME(DbName), {fold, Fun, Acc, Start, BatchSize}, infinity).
 
-
+foldr(DbName, Fun, Acc, Start, BatchSize)->
+    gen_server:call(?NAME(DbName), {foldr, Fun, Acc, Start, BatchSize}, infinity).
 
 
 init([DbName]) ->
     {ok, DbName}.
 
-handle_call({fold, Fun, Acc, BatchSize}, _From, DbName) ->
+handle_call({fold, Fun, Acc, Start, BatchSize}, _From, DbName) ->
 
     Reply =
 
-    case catch(bdb_port_driver:fold(DbName, Fun, Acc, BatchSize)) of
+    case catch(bdb_port_driver:fold(DbName, Fun, Acc, Start, BatchSize)) of
+    {'EXIT', Err} ->
+        {error, Err};
+
+    Rsp ->
+        Rsp
+
+    end,
+
+    {reply, Reply, DbName};
+
+handle_call({foldr, Fun, Acc, Start, BatchSize}, _From, DbName) ->
+
+    Reply =
+
+    case catch(bdb_port_driver:foldr(DbName, Fun, Acc, Start, BatchSize)) of
     {'EXIT', Err} ->
         {error, Err};
 

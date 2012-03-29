@@ -78,6 +78,97 @@ fold_test() ->
 
     exit(Pid, kill).
 
+fold2_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(100)),
+
+    F = fun (_, _, Acc) ->
+
+        Acc + 1
+
+    end,
+
+    ?assertEqual({ok, 100}, bdb_store:fold("test", F, 0, 1, 1000)),
+    ?assertEqual({ok, 51}, bdb_store:fold("test", F,  0, 50, 1000)),
+    ?assertEqual({ok, 1}, bdb_store:fold("test", F,  0, 100, 1000)),
+    ?assertEqual({ok, 0}, bdb_store:fold("test", F,  0, 101, 1000)),
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+foldr_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(10)),
+
+    F = fun (K, _, Acc) ->
+
+        [binary_to_term(K) | Acc]
+
+    end,
+
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr("test", F, [], 1000)),
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr("test", F, [], 1)),
+
+    ?assertEqual(ok, bdb_store:truncate("test")),
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual({ok, []}, bdb_store:foldr("test", F, [], 1000)),
+    ?assertEqual({ok, []}, bdb_store:foldr("test", F, [], 1)),
+   
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+foldr2_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(10)),
+
+    F = fun (K, _, Acc) ->
+
+        [binary_to_term(K) | Acc]
+
+    end,
+
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr("test", F, [], 10, 1000)),
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr("test", F, [], 10, 1)),
+    ?assertEqual({ok, [1,2,3,4,5]}, bdb_store:foldr("test", F, [], 5, 1000)),
+    ?assertEqual({ok, [1]}, bdb_store:foldr("test", F, [], 1, 1000)),
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
 
 fold_nonlock_test() ->
 
@@ -104,6 +195,100 @@ fold_nonlock_test() ->
     unlink(Pid),
 
     exit(Pid, kill).
+
+fold_nonlock2_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(100)),
+
+    F = fun (_, _, Acc) ->
+
+        Acc + 1
+
+    end,
+
+    ?assertEqual({ok, 100}, bdb_store:fold_nonlock("test", F, 0, 1, 1000)),
+    ?assertEqual({ok, 99}, bdb_store:fold_nonlock("test", F, 0, 2, 1000)),
+    ?assertEqual({ok, 51}, bdb_store:fold_nonlock("test", F, 0, 50, 1000)),
+    ?assertEqual({ok, 1}, bdb_store:fold_nonlock("test", F, 0, 100, 1000)),
+    ?assertEqual({ok, 0}, bdb_store:fold_nonlock("test", F, 0, 101, 1000)),
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+foldr_nonlock_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(10)),
+
+    F = fun (K, _, Acc) ->
+
+        [binary_to_term(K) | Acc]
+
+    end,
+
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr_nonlock("test", F, [], 1000)),
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr_nonlock("test", F, [], 1)),
+
+    ?assertEqual(ok, bdb_store:truncate("test")),
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual({ok, []}, bdb_store:foldr_nonlock("test", F, [], 1000)),
+    ?assertEqual({ok, []}, bdb_store:foldr_nonlock("test", F, [], 1)),
+   
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
+foldr_nonlock2_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(10)),
+
+    F = fun (K, _, Acc) ->
+
+        [binary_to_term(K) | Acc]
+
+    end,
+
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr_nonlock("test", F, [], 10, 1000)),
+    ?assertEqual({ok, [1,2,3,4,5,6,7,8,9,10]}, bdb_store:foldr_nonlock("test", F, [], 10, 1)),
+    ?assertEqual({ok, [1,2,3,4,5]}, bdb_store:foldr_nonlock("test", F, [], 5, 1000)),
+    ?assertEqual({ok, [1]}, bdb_store:foldr_nonlock("test", F, [], 1, 1000)),
+
+    unlink(Pid),
+
+    exit(Pid, kill).
+
 
 
 bulk_get_test() ->

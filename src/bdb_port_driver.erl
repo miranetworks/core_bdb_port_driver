@@ -4,7 +4,7 @@
 
 -include("bdb_port_driver.hrl").
 
--export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/4]).
+-export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/5, foldr/5]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -45,8 +45,11 @@ compact(DbName)->
 add_replication_node(DbName, StringIpAddr, Port)->
     gen_server:call(?NAME(DbName), {add_replication_node, StringIpAddr, Port}, infinity).
 
-fold(DbName, Fun, Acc, BatchSize)->
-    gen_server:call(?NAME(DbName), {fold, Fun, Acc, BatchSize}, infinity).
+fold(DbName, Fun, Acc, Start, BatchSize)->
+    gen_server:call(?NAME(DbName), {fold, Fun, Acc, Start, BatchSize}, infinity).
+
+foldr(DbName, Fun, Acc, Start, BatchSize)->
+    gen_server:call(?NAME(DbName), {foldr, Fun, Acc, Start, BatchSize}, infinity).
 
 
 %Options: List of {option, value} pairs where option can be:
@@ -236,10 +239,24 @@ handle_call({bulk_get, Offset, Count}, _From, State)
     {reply, Reply, State};
 
 
-handle_call({fold, Fun, Acc, BatchSize}, _From, State) ->
+handle_call({fold, Fun, Acc, Start, BatchSize}, _From, State) ->
 
     Reply =
-    case catch(traverse_fold(State#state.port, Fun, Acc, 1, BatchSize)) of
+    case catch(traverse_fold(State#state.port, Fun, Acc, Start, BatchSize)) of
+    {'EXIT', _} = Ex ->
+        {error, Ex};
+
+    NewAcc ->
+        NewAcc
+
+    end,
+
+    {reply, Reply, State};
+
+handle_call({foldr, Fun, Acc, Start, BatchSize}, _From, State) ->
+
+    Reply =
+    case catch(traverse_foldr(State#state.port, Fun, Acc, Start, BatchSize)) of
     {'EXIT', _} = Ex ->
         {error, Ex};
 
@@ -355,6 +372,32 @@ traverse_fold(Port, Fun, Acc, Offset, Count) ->
         {error, Error}
 
     end.
+
+traverse_foldr(Port, Fun, Acc, Offset, Count) when Offset >= 1 ->
+
+    Cmd = $B,
+
+    Message =  <<Cmd:8/unsigned-big-integer, Offset:32/unsigned-big-integer, Count:32/unsigned-big-integer>>,
+
+    case send_command(Port, Message) of
+    {ok, []} ->
+        %EOS
+        {ok, Acc};
+
+    {ok, Data} ->
+
+        NewAcc = traverse_fold_batch(Fun, Acc, lists:reverse(Data)),
+
+        traverse_foldr(Port, Fun, NewAcc, Offset - length(Data), Count);
+
+
+    Error ->
+        {error, Error}
+
+    end;
+traverse_foldr(_Port, _Fun, Acc, _Offset, _Count) ->
+    {ok, Acc}.
+
 
 traverse_fold_batch(Fun, Acc, [{LKey, LData} | T]) ->
 
