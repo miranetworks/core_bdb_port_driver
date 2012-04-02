@@ -7,7 +7,7 @@
         ]).
 
 -export([set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4, foldr/4, fold_nonlock/4, foldr_nonlock/4, 
-        fold/5, foldr/5, fold_nonlock/5, foldr_nonlock/5]).
+        fold/5, foldr/5, fold_nonlock/5, foldr_nonlock/5, get_sync_interval/1, set_sync_interval/2]).
 
 
 set(DbName, Key, Value)->
@@ -24,6 +24,12 @@ count(DbName)->
 
 sync(DbName)->
     bdb_port_driver_proxy:sync(DbName).
+
+get_sync_interval(DbName) ->
+    bdb_port_driver_sync:get_interval(DbName).
+
+set_sync_interval(DbName, IntervalMs) when is_integer(IntervalMs) and (IntervalMs > 0) ->
+    bdb_port_driver_sync:set_interval(DbName, IntervalMs).
 
 bulk_get(DbName, Offset, Count)->
     bdb_port_driver_proxy:bulk_get(DbName, Offset, Count).
@@ -95,10 +101,10 @@ init([DbName, DataDir, Options]) ->
     {ok, { RestartSpec, [PortDrvSpec, PortDrvProxySpec] ++
 
         case check_autosync(Options) of
-        {ok, SyncIntervalMs} ->   
+        {ok, SyncIntervalMs, Fun} ->   
 
             [{bdb_port_driver_sync,
-                {bdb_port_driver_sync, start_link, [DbName, SyncIntervalMs]},
+                {bdb_port_driver_sync, start_link, [DbName, SyncIntervalMs, Fun]},
                 permanent, 600000, worker, [bdb_port_driver_sync]}];
 
         _ ->
@@ -156,9 +162,13 @@ loop_fold_nonlock(_Fun, Acc, []) -> Acc.
 
 check_autosync(Options) ->
 
-    case proplists:get_value(sync, Options) of
-    Value when is_integer(Value) and (Value > 0) ->
-        {ok, Value};
+    case lists:keysearch(sync, 1, Options) of
+    {value, {sync, IntervalMs, Fun}}  when is_integer(IntervalMs) and (IntervalMs > 0) ->
+        {ok, IntervalMs, Fun};
+
+    {value, {sync, IntervalMs}}  when is_integer(IntervalMs) and (IntervalMs > 0) ->
+        {ok, IntervalMs, undefined};
+
 
     _ ->
         false

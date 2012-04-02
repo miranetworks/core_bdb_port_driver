@@ -343,6 +343,10 @@ sync_test() ->
 
     ?assertEqual(ok, bdb_store:sync("test")),
 
+    ?assertEqual({ok, 5000}, bdb_store:get_sync_interval("test")),
+    ?assertEqual(ok, bdb_store:set_sync_interval("test", 10000)),
+    ?assertEqual({ok, 10000}, bdb_store:get_sync_interval("test")),
+
     unlink(Pid),
 
     exit(Pid, kill).

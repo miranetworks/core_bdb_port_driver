@@ -9,6 +9,9 @@ deps:
 
 app: deps ./ebin/mira_bdb_port_driver.app
 
+run: app
+	erl -smp disable -pa ./ebin -pa ./deps/*/ebin -sname bdbdev@$(shell hostname -s)
+
 clean:
 	rm -fr .eunit
 	rm -fr erl_crash.dump
