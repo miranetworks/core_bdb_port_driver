@@ -117,8 +117,15 @@ static void stop(ErlDrvData handle) {
                 
             }
 
-
             pdrv->pcfg->pdb->close(pdrv->pcfg->pdb, 0);
+
+            pdrv->pcfg->pdb = NULL;
+
+            pdrv->pcfg->penv->close(pdrv->pcfg->penv, 0);
+
+            pdrv->pcfg->penv = NULL;
+
+
         }
 
 
