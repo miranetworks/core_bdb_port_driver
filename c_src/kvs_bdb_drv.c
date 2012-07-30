@@ -769,7 +769,7 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
 
     int ret;
     size_t retklen, retdlen;
-    char *retkey, *retdata;
+    void *retkey, *retdata;
     void* p;
 
     DB*  pdb;
@@ -821,6 +821,8 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
         //First count the number of recs...
         for (DB_MULTIPLE_INIT(p, &data); curr < limit; curr++) {
 
+
+//DB_MULTIPLE_KEY_NEXT(void *pointer, DBT *data, void *retkey, size_t retklen, void *retdata, size_t retdlen);
             DB_MULTIPLE_KEY_NEXT(p, &data, retkey, retklen, retdata, retdlen);
 
             if (p == NULL) {
@@ -897,7 +899,7 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
 
     int ret;
     size_t retklen, retdlen;
-    char *retkey, *retdata;
+    void *retkey, *retdata;
     void* p;
 
     DB*  pdb;
