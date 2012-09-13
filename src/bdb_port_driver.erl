@@ -4,7 +4,7 @@
 
 -include("bdb_port_driver.hrl").
 
--export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/5, foldr/5]).
+-export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/5, foldr/5, map/3]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -50,6 +50,9 @@ fold(DbName, Fun, Acc, Start, BatchSize)->
 
 foldr(DbName, Fun, Acc, Start, BatchSize)->
     gen_server:call(?NAME(DbName), {foldr, Fun, Acc, Start, BatchSize}, infinity).
+
+map(DbName, Key, Fun)->
+    gen_server:call(?NAME(DbName), {map, Key, Fun}, infinity).
 
 
 %Options: List of {option, value} pairs where option can be:
@@ -292,6 +295,41 @@ handle_call({get, Key}, _From, State)
 
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
+
+handle_call({map, Key, Fun}, _From, State) when is_binary(Key) and is_function(Fun, 1) ->
+    KeySize   = size(Key),
+    GetMessage =  <<$G:8/unsigned-big-integer, KeySize:32/unsigned-big-integer, Key/binary>>,
+    case send_command(State#state.port, GetMessage) of
+    {ok, LCurrentValue} ->
+        CurrentBinValue = list_to_binary(LCurrentValue),
+        Reply =
+        case catch(Fun(CurrentBinValue)) of
+        {update, NewValue} when is_binary(NewValue) ->
+            ValueSize = size(NewValue),
+            SetMessage = <<$S:8/unsigned-big-integer, KeySize:32/unsigned-big-integer, Key/binary, ValueSize:32/unsigned-big-integer, NewValue/binary>>,
+            case send_command(State#state.port, SetMessage) of
+            ok ->
+                {ok, {updated, NewValue}};
+            Error ->
+                Error
+            end;
+        ignore ->
+            {ok, {ignored, CurrentBinValue}};
+        delete ->
+            DelMessage = <<$D:8/unsigned-big-integer, KeySize:32/unsigned-big-integer, Key/binary>>,
+            case send_command(State#state.port, DelMessage) of
+            ok ->
+                {ok, {deleted, CurrentBinValue}};
+            Error ->
+                Error
+            end;
+        Error ->
+            {error, Error}
+        end,
+        {reply, Reply, State};
+    Reply ->    
+        {reply, Reply, State}
+    end;
 
 handle_call({del, Key}, _From, State)
   when is_binary(Key) ->

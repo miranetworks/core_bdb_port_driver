@@ -1,4 +1,4 @@
--module(bdb_store_test).
+-module(bdb_store_tests).
 
 
 -include_lib("eunit/include/eunit.hrl").
@@ -343,6 +343,42 @@ sync_test() ->
     ?assertEqual({ok, 5000}, bdb_store:get_sync_interval("test")),
     ?assertEqual(ok, bdb_store:set_sync_interval("test", 10000)),
     ?assertEqual({ok, 10000}, bdb_store:get_sync_interval("test")),
+
+    kill(Pid).
+
+map_test() ->
+
+    ok = error_logger:tty(true),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual(ok, bdb_store:set("test", <<"mapkey">>, <<"mapvalue1">>)),
+    ?assertEqual({ok, "mapvalue1"}, bdb_store:get("test", <<"mapkey">>)),
+
+    FunOk = fun (_OldValue) -> {update, <<"FunOk">>} end,
+    ?assertEqual({error, not_found}, bdb_store:map("test", <<"mapkey_does_not_exist">>, FunOk)),
+    ?assertEqual({ok, {updated, <<"FunOk">>}}, bdb_store:map("test", <<"mapkey">>, FunOk)),
+    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+
+    FunError = fun (_OldValue) -> error end,
+    ?assertEqual({error, error}, bdb_store:map("test", <<"mapkey">>, FunError)),
+    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+
+    FunException = fun (_OldValue) -> erlang:throw({'EXIT', "bla"}) end,
+    ?assertEqual({error, {'EXIT', "bla"}}, bdb_store:map("test", <<"mapkey">>, FunException)),
+    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+
+    FunIgnore = fun (_OldValue) -> ignore end,
+    ?assertEqual({ok, {ignored, <<"FunOk">>}}, bdb_store:map("test", <<"mapkey">>, FunIgnore)),
+    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+
+    FunDelete = fun (_OldValue) -> delete end,
+    ?assertEqual({ok, {deleted, <<"FunOk">>}}, bdb_store:map("test", <<"mapkey">>, FunDelete)),
+    ?assertEqual({error, not_found}, bdb_store:get("test", <<"mapkey">>)),
 
     kill(Pid).
 

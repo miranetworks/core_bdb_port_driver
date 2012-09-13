@@ -1,4 +1,4 @@
--module(bdb_port_driver_sync_test).
+-module(bdb_port_driver_sync_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 

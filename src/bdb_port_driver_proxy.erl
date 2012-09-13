@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/5, foldr/5]).
+-export([start_link/1, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/5, foldr/5, map/3]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -42,6 +42,9 @@ fold(DbName, Fun, Acc, Start, BatchSize)->
 
 foldr(DbName, Fun, Acc, Start, BatchSize)->
     gen_server:call(?NAME(DbName), {foldr, Fun, Acc, Start, BatchSize}, infinity).
+
+map(DbName, Key, Fun)->
+    gen_server:call(?NAME(DbName), {map, Key, Fun}, infinity).
 
 
 init([DbName]) ->
@@ -189,18 +192,25 @@ handle_call({get, Key}, _From, DbName)
 
     {reply, Reply, DbName};
 
+handle_call({map, Key, Fun}, _From, DbName)  when is_binary(Key) and is_function(Fun, 1) ->
+    Reply =
+    case catch(bdb_port_driver:map(DbName, Key, Fun)) of
+    {'EXIT', Err} ->
+        {error, Err};
+    Rsp ->
+        Rsp
+    end,
+    {reply, Reply, DbName};
+
 handle_call({del, Key}, _From, DbName)
   when is_binary(Key) ->
 
     Reply =
-
     case catch(bdb_port_driver:del(DbName, Key)) of
     {'EXIT', Err} ->
         {error, Err};
-
     Rsp ->
         Rsp
-
     end,
 
     {reply, Reply, DbName};

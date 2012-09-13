@@ -7,7 +7,7 @@
         ]).
 
 -export([set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/4, foldr/4, fold_nonlock/4, foldr_nonlock/4, 
-        fold/5, foldr/5, fold_nonlock/5, foldr_nonlock/5, get_sync_interval/1, set_sync_interval/2]).
+        fold/5, foldr/5, fold_nonlock/5, foldr_nonlock/5, get_sync_interval/1, set_sync_interval/2, map/3]).
 
 
 set(DbName, Key, Value)->
@@ -78,6 +78,12 @@ foldr_nonlock(DbName, Fun, Acc, Offset, BatchSize) when BatchSize > 0 ->
         do_foldr_nonlock(DbName, Fun, Acc, 1, Offset)
     end.
 
+%% @doc Map the value associated with a key to a new one<br>
+%% NOTE: Fun should be lightweight and should not lock-up<br> 
+%%      
+-spec map(string(), binary(), fun((binary()) -> {update, binary()} | delete | ignore)) -> {ok, {updated, binary()} | {deleted, binary()} | {ignored, binary()}} | {error, not_found} | {error, any()}.
+map(DbName, Key, Fun) when is_binary(Key) and is_function(Fun, 1) ->
+    bdb_port_driver_proxy:map(DbName, Key, Fun).
 
 % Interface functions
 start_link(DbName, DataDir, Options) -> 
