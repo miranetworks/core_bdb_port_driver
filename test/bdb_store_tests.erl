@@ -47,12 +47,7 @@ insert_test() ->
 
     ?assertEqual(ok, bdb_store:sync("test")),
 
-    unlink(Pid),
-    monitor(process, Pid),
-    exit(Pid, shutdown),
-    receive {'DOWN', _, process, Pid, _} -> ok end.
-
-
+    kill(Pid).
 
 fold_test() ->
 
@@ -76,10 +71,7 @@ fold_test() ->
 
     ?assertEqual({ok, 100}, bdb_store:fold("test", F, 0, 1000)),
 
-    unlink(Pid), 
-    monitor(process, Pid),
-    exit(Pid, shutdown),
-    receive {'DOWN', _, process, Pid, _} -> ok end.
+    kill(Pid).
 
 fold2_test() ->
 
@@ -106,10 +98,7 @@ fold2_test() ->
     ?assertEqual({ok, 1}, bdb_store:fold("test", F,  0, 100, 1000)),
     ?assertEqual({ok, 0}, bdb_store:fold("test", F,  0, 101, 1000)),
 
-    unlink(Pid), 
-    monitor(process, Pid),
-    exit(Pid, shutdown),
-    receive {'DOWN', _, process, Pid, _} -> ok end.
+    kill(Pid).
 
 foldr_test() ->
 
@@ -140,10 +129,7 @@ foldr_test() ->
     ?assertEqual({ok, []}, bdb_store:foldr("test", F, [], 1000)),
     ?assertEqual({ok, []}, bdb_store:foldr("test", F, [], 1)),
    
-    unlink(Pid), 
-    monitor(process, Pid),
-    exit(Pid, shutdown),
-    receive {'DOWN', _, process, Pid, _} -> ok end.
+    kill(Pid).
 
 foldr2_test() ->
 
@@ -170,10 +156,7 @@ foldr2_test() ->
     ?assertEqual({ok, [1,2,3,4,5]}, bdb_store:foldr("test", F, [], 5, 1000)),
     ?assertEqual({ok, [1]}, bdb_store:foldr("test", F, [], 1, 1000)),
 
-    unlink(Pid),
-    monitor(process, Pid),
-    exit(Pid, shutdown),
-    receive {'DOWN', _, process, Pid, _} -> ok end.
+    kill(Pid).
 
 
 fold_nonlock_test() ->
@@ -194,15 +177,13 @@ fold_nonlock_test() ->
 
         Acc + 1
 
-    end,
+    end
+        {ok, Acc
+        {ok, Acc}},
 
-    ?assertEqual({ok, 100}, bdb_store:fold_nonlock("test", F, 0, 1000)),
+    ?assertEqual({ok, 101}, bdb_store:fold_nonlock("test", F, 1, 1000)),
 
-    unlink(Pid),
-    monitor(process, Pid),
-    exit(Pid, shutdown),
-    receive {'DOWN', _, process, Pid, _} -> ok end.
-
+    kill(Pid).
 
 fold_nonlock2_test() ->
 
