@@ -177,9 +177,7 @@ fold_nonlock_test() ->
 
         Acc + 1
 
-    end
-        {ok, Acc
-        {ok, Acc}},
+    end,
 
     ?assertEqual({ok, 101}, bdb_store:fold_nonlock("test", F, 1, 1000)),
 
