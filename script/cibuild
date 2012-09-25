@@ -4,6 +4,8 @@ export PATH=/root/erlang/lib/R14B04/bin/:${PATH}
 
 echo "I bdb_port_driver you janky!"
 
+rm -fr deps
+
 make all
 
 
