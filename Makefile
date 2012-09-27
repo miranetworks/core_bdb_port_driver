@@ -13,6 +13,8 @@ run: app
 	erl -smp disable -pa ./ebin -pa ./deps/*/ebin -sname bdbdev@$(shell hostname -s)
 
 clean:
+	rm -fr priv/*.so
+	rm -fr c_src/*.o
 	rm -fr .eunit
 	rm -fr erl_crash.dump
 	./rebar clean

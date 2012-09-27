@@ -78,7 +78,7 @@ static ErlDrvEntry basic_driver_entry = {
 
     ERL_DRV_EXTENDED_MARKER,          /* ERL_DRV_EXTENDED_MARKER */
     ERL_DRV_EXTENDED_MAJOR_VERSION,   /* ERL_DRV_EXTENDED_MAJOR_VERSION */
-    ERL_DRV_EXTENDED_MAJOR_VERSION,   /* ERL_DRV_EXTENDED_MINOR_VERSION */
+    ERL_DRV_EXTENDED_MINOR_VERSION,   /* ERL_DRV_EXTENDED_MINOR_VERSION */
     ERL_DRV_FLAG_USE_PORT_LOCKING     /* ERL_DRV_FLAGs */
 };
 
@@ -185,7 +185,7 @@ static void outputv(ErlDrvData handle, ErlIOVec *ev) {
         process_truncate(pdrv, ev);
         break;
 
-#if ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4))
+#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
     case 'R':
         process_add_replication_node(pdrv, ev);
         break;
@@ -257,7 +257,9 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
     char *replication_if_bytes     = replication_if_len_bytes + 4;
     uint32_t replication_if_length = (uint32_t) ntohl(* ((uint32_t*) replication_if_len_bytes) );
 
+#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
     uint32_t replication_port = (uint32_t) ntohl(* ((uint32_t*) (replication_if_bytes + replication_if_length) ));
+#endif
 
     char replication_type =  ((char*)(replication_if_bytes + replication_if_length + 4))[0];
 
@@ -344,7 +346,7 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     if (pcfg->replication_enabled) {
 
-#if ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4))
+#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
 
         penv->set_event_notify(penv, event_callback);
 
@@ -699,7 +701,7 @@ static void process_truncate( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
 }
 
-#if ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4))
+#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
 
 static void process_add_replication_node( bdb_drv_t* pdrv, ErlIOVec *ev) {
     ErlDrvBinary* data = ev->binv[1];
@@ -1190,7 +1192,7 @@ static void del (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
 
 }
 
-#if ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4))
+#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
 
 static void event_callback(DB_ENV* penv, u_int32_t event, void* info) {
 

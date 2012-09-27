@@ -61,7 +61,7 @@ static void process_compact(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_truncate(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_unkown(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 
-#if ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4))
+#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
 static void process_add_replication_node(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void event_callback __P((DB_ENV*, u_int32_t, void*));
 #endif
