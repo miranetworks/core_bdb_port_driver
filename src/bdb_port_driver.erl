@@ -300,8 +300,7 @@ handle_call({map, Key, Fun}, _From, State) when is_binary(Key) and is_function(F
     KeySize   = size(Key),
     GetMessage =  <<$G:8/unsigned-big-integer, KeySize:32/unsigned-big-integer, Key/binary>>,
     case send_command(State#state.port, GetMessage) of
-    {ok, LCurrentValue} ->
-        CurrentBinValue = list_to_binary(LCurrentValue),
+    {ok, CurrentBinValue} ->
         Reply =
         case catch(Fun(CurrentBinValue)) of
         {update, NewValue} when is_binary(NewValue) ->

@@ -6,7 +6,9 @@ static void return_error_tuple(bdb_drv_t* pdrv, char* err_msg) {
                                 ERL_DRV_ATOM, driver_mk_atom(err_msg),
                                 ERL_DRV_TUPLE, 2};
 
-    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+//    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+    erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
 
 }
 
@@ -22,7 +24,9 @@ static void return_ok_empty_list(bdb_drv_t* pdrv) {
 
                             ERL_DRV_TUPLE, 2};
 
-    driver_output_term(pdrv->port, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+//    driver_output_term(pdrv->port, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+    erl_drv_output_term(mkport, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
 
 }
 
@@ -30,9 +34,38 @@ static void return_ok(bdb_drv_t* pdrv) {
 
     ErlDrvTermData spec[] = {ERL_DRV_ATOM, driver_mk_atom("ok")};
 
-    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+//    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+    erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
 
 }
+
+static unsigned long gettimestamp() {
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+
+    return (unsigned long) (tv.tv_sec + (tv.tv_usec * 1000000));
+
+}
+
+static void timeout (ErlDrvData pdata) {
+    bdb_drv_t* pdrv = (bdb_drv_t*) pdata;
+    
+    unsigned long ts_ms = gettimestamp();
+
+    unsigned long last_sync_age_ms = pdrv->last_sync_ms - ts_ms;
+
+    if ((pdrv->update_counter > pdrv->max_updates_before_flush) || (last_sync_age_ms > pdrv->max_sync_age_ms)) {
+        do_sync(pdrv);
+        pdrv->update_counter = 0;
+        pdrv->last_sync_ms = gettimestamp();
+    }
+
+    driver_set_timer(pdrv->port, 1000);
+    
+}
+
 
 #ifndef ERL_DRV_EXTENDED_MARKER
 // Callback Array
@@ -47,9 +80,9 @@ static ErlDrvEntry basic_driver_entry = {
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */
-    NULL,                             /* timeout */
+    timeout,                             /* timeout */
     outputv,                          /* outputv (defined below) */
-    NULL,                             /* ready_async */
+    NULL,                      /* ready_async */
     NULL,                             /* flush */
     NULL,                             /* call */
     NULL                            /* event */
@@ -69,9 +102,9 @@ static ErlDrvEntry basic_driver_entry = {
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */
-    NULL,                             /* timeout */
+    timeout,                             /* timeout */
     outputv,                          /* outputv (defined below) */
-    NULL,                             /* ready_async */
+    NULL,                      /* ready_async */
     NULL,                             /* flush */
     NULL,                             /* call */
     NULL,                             /* event */
@@ -92,6 +125,8 @@ static ErlDrvData start(ErlDrvPort port, char* cmd) {
     bdb_drv_t* retval = (bdb_drv_t*) driver_alloc(sizeof(bdb_drv_t));
 
     retval->port = port;
+    retval->async_thread_key = driver_async_port_key(port);
+    //retval->async_thread_key = 0;
     retval->pcfg = NULL;
 
     return (ErlDrvData) retval;
@@ -102,38 +137,23 @@ static void stop(ErlDrvData handle) {
     bdb_drv_t* pdrv = (bdb_drv_t*) handle;
 
     if (pdrv->pcfg) {
-
-        
-
         if (pdrv->pcfg->pdb) {
-
             pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0);
-    
             if (pdrv->pcfg->replication_enabled) {
-
                 pdrv->pcfg->penv->rep_sync(pdrv->pcfg->penv, 0);
-
                 pdrv->pcfg->penv->log_flush(pdrv->pcfg->penv, NULL);
-                
             }
 
             pdrv->pcfg->pdb->close(pdrv->pcfg->pdb, 0);
-
             pdrv->pcfg->pdb = NULL;
-
             pdrv->pcfg->penv->close(pdrv->pcfg->penv, 0);
-
             pdrv->pcfg->penv = NULL;
-
-
         }
-
 
         if (pdrv->pcfg->buffer) {
             free(pdrv->pcfg->buffer);
             pdrv->pcfg->buffer = NULL;
         }
-
     }
 
     driver_free(pdrv);
@@ -203,20 +223,19 @@ static void process_unkown(bdb_drv_t *bdb_drv, ErlIOVec *ev) {
   ErlDrvTermData spec[] = {ERL_DRV_ATOM, driver_mk_atom("error"),
                ERL_DRV_ATOM, driver_mk_atom("uknown_command"),
                ERL_DRV_TUPLE, 2};
-  driver_output_term(bdb_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
+//  driver_output_term(bdb_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
+    ErlDrvTermData mkport = driver_mk_port(bdb_drv->port);
+    erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+
 }
 
 
 static void process_open( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     if (pdrv->pcfg) {
-
         return_error_tuple(pdrv, "Already opened!");
-
     } else {
-
         open_db(pdrv, ev);
-
     }
 
 }
@@ -424,6 +443,13 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     pdrv->pcfg = pcfg;
 
+    pdrv->max_updates_before_flush = 10000;
+    pdrv->update_counter           = 0;
+    pdrv->last_sync_ms             = gettimestamp();
+    pdrv->max_sync_age_ms          = 10000;
+
+    //driver_set_timer(pdrv->port, 1000);
+
     return_ok(pdrv);
 
     return;
@@ -443,19 +469,13 @@ static void process_set( bdb_drv_t* pdrv, ErlIOVec *ev) {
     char *value_bytes     = bytes + 1 + 4 + key_length + 4;
     unsigned int value_length = (unsigned int) ntohl(* ((uint32_t*) value_len_bytes) );
 
-
     if (pdrv->pcfg) {
-
         if (pdrv->pcfg->pdb == NULL) {
             return_error_tuple(pdrv, "Database not opened!");
             return;
         }
-
-
         set (key_length, key_bytes, value_length, value_bytes, pdrv);
-
     } else {
-
         return_error_tuple(pdrv, "Database not opened!");
     }
 
@@ -475,12 +495,8 @@ static void process_get( bdb_drv_t* pdrv, ErlIOVec *ev) {
             return_error_tuple(pdrv, "Database not opened!");
             return;
         }
-
-
         get (key_length, key_bytes, pdrv);
-
     } else {
-
         return_error_tuple(pdrv, "Database not opened!");
     }
 
@@ -500,12 +516,8 @@ static void process_del( bdb_drv_t* pdrv, ErlIOVec *ev) {
             return_error_tuple(pdrv, "Database not opened!");
             return;
         }
-
-
         del (key_length, key_bytes, pdrv);
-
     } else {
-
         return_error_tuple(pdrv, "Database not opened!");
     }
 
@@ -529,8 +541,6 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
         return_error_tuple(pdrv, "Database not opened!");
         return;
     }
-
-
 
     while (1) {
 
@@ -556,7 +566,10 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
                     ERL_DRV_TUPLE, 2};
 
-                driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+                //driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+                ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+                erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+
 
                 free(btree_stats);
 
@@ -586,7 +599,9 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
                     ERL_DRV_TUPLE, 2};
 
-                driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+                //driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+                ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+                erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
 
                 free(hash_stats);
 
@@ -602,64 +617,67 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
 }
 
-static void process_flush( bdb_drv_t* pdrv, ErlIOVec *ev) {
+static void async_process_flush_done(void* pdata);
 
+static void process_flush( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     if (pdrv->pcfg == NULL) {
         return_error_tuple(pdrv, "Database not opened!");
         return;
     }
 
-        if (pdrv->pcfg->pdb == NULL) {
-            return_error_tuple(pdrv, "Database not opened!");
-            return;
-        }
+    if (pdrv->pcfg->pdb == NULL) {
+        return_error_tuple(pdrv, "Database not opened!");
+        return;
+    }
 
+    driver_async(pdrv->port, &pdrv->async_thread_key, async_process_flush, (void*) pdrv, async_process_flush_done);
+
+ }
+
+static void async_process_flush_done(void* pdata) {}
+
+static void async_process_flush(void* pdata) {
+
+    bdb_drv_t* pdrv = (bdb_drv_t*) pdata;
 
     int ret;
 
-    if ((ret = pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0))) {
-        return_error_tuple(pdrv, db_strerror(ret));
+    if ((ret = do_sync(pdrv)) == 0) {
+        return_ok(pdrv);
     } else {
-
-            if (pdrv->pcfg->replication_enabled) {
-
-                if ((ret = pdrv->pcfg->penv->rep_sync(pdrv->pcfg->penv, 0)) == 0) {
-
-                    if ((ret = pdrv->pcfg->penv->log_flush(pdrv->pcfg->penv, NULL))) {
-                        return_error_tuple(pdrv, db_strerror(ret));
-                    } else {
-                        return_ok(pdrv);
-                    }
-
-                } else {
-                    return_error_tuple(pdrv, db_strerror(ret));
-                }
-
-            } else {
-                return_ok(pdrv);
-            }
-
+        return_error_tuple(pdrv, db_strerror(ret));
     }
 
     return;
+}
 
+static int do_sync(bdb_drv_t* pdrv) {
+    int ret = 0;
+
+    if ((ret = pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0)) == 0) {
+        if (pdrv->pcfg->replication_enabled) {
+            if ((ret = pdrv->pcfg->penv->rep_sync(pdrv->pcfg->penv, 0)) == 0) {
+                ret = pdrv->pcfg->penv->log_flush(pdrv->pcfg->penv, NULL);
+            }
+        }
+    }
+    return ret;
 }
 
 static void process_compact( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
+    int ret;
 
     if (pdrv->pcfg == NULL) {
         return_error_tuple(pdrv, "Database not opened!");
         return;
     }
-        if (pdrv->pcfg->pdb == NULL) {
-            return_error_tuple(pdrv, "Database not opened!");
-            return;
-        }
 
-
-    int ret;
+    if (pdrv->pcfg->pdb == NULL) {
+        return_error_tuple(pdrv, "Database not opened!");
+        return;
+    }
 
     ret = pdrv->pcfg->pdb->compact(pdrv->pcfg->pdb, NULL, NULL, NULL, NULL, 0, NULL);
 
@@ -676,18 +694,17 @@ static void process_compact( bdb_drv_t* pdrv, ErlIOVec *ev) {
 static void process_truncate( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     u_int32_t count;
+    int ret;
 
     if (pdrv->pcfg == NULL) {
         return_error_tuple(pdrv, "Database not opened!");
         return;
     }
-        if (pdrv->pcfg->pdb == NULL) {
-            return_error_tuple(pdrv, "Database not opened!");
-            return;
-        }
 
-
-    int ret;
+    if (pdrv->pcfg->pdb == NULL) {
+        return_error_tuple(pdrv, "Database not opened!");
+        return;
+    }
 
     ret = pdrv->pcfg->pdb->truncate(pdrv->pcfg->pdb, NULL, &count, 0);
 
@@ -752,15 +769,12 @@ static void process_bulk_get( bdb_drv_t* pdrv, ErlIOVec *ev) {
     unsigned int count = (unsigned int) ntohl(* ((uint32_t*) count_bytes) );
 
     if (pdrv->pcfg) {
-
         if (pdrv->pcfg->db_type == DB_HASH) {
             bulk_get_hash (offset, count, pdrv);
         } else {
             bulk_get_btree (offset, count, pdrv);
         }
-
     } else {
-
         return_error_tuple(pdrv, "Database not opened!");
     }
 
@@ -883,7 +897,9 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
             spec[spec_items - 2] = ERL_DRV_TUPLE;
             spec[spec_items - 1] = 2;
 
-            driver_output_term(pdrv->port, spec, spec_items);
+            //driver_output_term(pdrv->port, spec, spec_items);
+            ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+            erl_drv_output_term(mkport, spec, spec_items);
 
             free(spec);
 
@@ -1022,7 +1038,9 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                     spec[spec_items - 2] = ERL_DRV_TUPLE;
                     spec[spec_items - 1] = 2;
 
-                    driver_output_term(pdrv->port, spec, spec_items);
+                    //driver_output_term(pdrv->port, spec, spec_items);
+                    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+                    erl_drv_output_term(mkport, spec, spec_items);
 
                     free(spec);
 
@@ -1066,6 +1084,7 @@ static void set (u_int32_t key_size, void* praw_key, u_int32_t data_size, void* 
         ret = pdb->put(pdb, 0, &key, &data, 0);
     
         if        (ret == 0) {
+            pdrv->update_counter++;
             return_ok(pdrv);
             break;
         } else if (ret == DB_LOCK_DEADLOCK) {
@@ -1112,16 +1131,26 @@ static void get (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
 
         if        (ret == 0) {
 
+            ErlDrvBinary* pbin = driver_alloc_binary(data.size);
+
+            memcpy(pbin->orig_bytes, data.data, data.size);
+
             ErlDrvTermData spec[] = {   
                                     ERL_DRV_ATOM, driver_mk_atom("ok"),
 
-                                    ERL_DRV_STRING, (ErlDrvTermData) data.data, data.size,
+                                    ERL_DRV_BINARY, (ErlDrvSInt) pbin, (ErlDrvUInt) data.size, (ErlDrvUInt) 0,
+
+//                                    ERL_DRV_STRING, (ErlDrvTermData) data.data, data.size,
                  
                                     ERL_DRV_TUPLE, 2};
 
-            driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+            //driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+            ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+            erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
 
             free(data.data);
+
+            driver_free_binary(pbin);
 
             break;
         } else if (ret == DB_LOCK_DEADLOCK) {
@@ -1170,6 +1199,9 @@ static void del (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
         ret = pdb->del(pdb, NULL, &key, 0);
 
         if        ((ret == 0) || (ret == DB_NOTFOUND)) {
+
+            if (ret == 0) {pdrv->update_counter++;}
+
             return_ok(pdrv);
             break;
         } else if (ret == DB_LOCK_DEADLOCK) {

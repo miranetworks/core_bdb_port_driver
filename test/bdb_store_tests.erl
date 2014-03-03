@@ -336,24 +336,24 @@ map_test() ->
     ?assert(is_pid(Pid)),
 
     ?assertEqual(ok, bdb_store:set("test", <<"mapkey">>, <<"mapvalue1">>)),
-    ?assertEqual({ok, "mapvalue1"}, bdb_store:get("test", <<"mapkey">>)),
+    ?assertEqual({ok, <<"mapvalue1">>}, bdb_store:get("test", <<"mapkey">>)),
 
     FunOk = fun (_OldValue) -> {update, <<"FunOk">>} end,
     ?assertEqual({error, not_found}, bdb_store:map("test", <<"mapkey_does_not_exist">>, FunOk)),
     ?assertEqual({ok, {updated, <<"FunOk">>}}, bdb_store:map("test", <<"mapkey">>, FunOk)),
-    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+    ?assertEqual({ok, <<"FunOk">>}, bdb_store:get("test", <<"mapkey">>)),
 
     FunError = fun (_OldValue) -> error end,
     ?assertEqual({error, error}, bdb_store:map("test", <<"mapkey">>, FunError)),
-    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+    ?assertEqual({ok, <<"FunOk">>}, bdb_store:get("test", <<"mapkey">>)),
 
     FunException = fun (_OldValue) -> erlang:throw({'EXIT', "bla"}) end,
     ?assertEqual({error, {'EXIT', "bla"}}, bdb_store:map("test", <<"mapkey">>, FunException)),
-    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+    ?assertEqual({ok, <<"FunOk">>}, bdb_store:get("test", <<"mapkey">>)),
 
     FunIgnore = fun (_OldValue) -> ignore end,
     ?assertEqual({ok, {ignored, <<"FunOk">>}}, bdb_store:map("test", <<"mapkey">>, FunIgnore)),
-    ?assertEqual({ok, "FunOk"}, bdb_store:get("test", <<"mapkey">>)),
+    ?assertEqual({ok, <<"FunOk">>}, bdb_store:get("test", <<"mapkey">>)),
 
     FunDelete = fun (_OldValue) -> delete end,
     ?assertEqual({ok, {deleted, <<"FunOk">>}}, bdb_store:map("test", <<"mapkey">>, FunDelete)),
@@ -379,7 +379,7 @@ loop_lookup(N)->
 
     Key = term_to_binary(N),
 
-    Expectedvalue = "V" ++ integer_to_list(N),
+    Expectedvalue = list_to_binary("V" ++ integer_to_list(N)),
 
     {ok, Expectedvalue} = bdb_store:get("test", Key),
 

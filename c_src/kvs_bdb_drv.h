@@ -5,10 +5,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/time.h>
 
 #include <erl_driver.h>
 #include <ei.h>
-
 
 #ifndef __KVS_BDB_DRV_H__
 #define __KVS_BDB_DRV_H__
@@ -44,8 +44,44 @@ typedef struct _bdb_drv_t {
   ErlDrvPort port;
 
   drv_cfg *pcfg;
+
+  unsigned int async_thread_key;
+
+  unsigned long update_counter;
+  unsigned long max_updates_before_flush;
+  unsigned long last_sync_ms;
+  unsigned long max_sync_age_ms;
+
 } bdb_drv_t;
 
+/*
+typedef struct _async_set_t {
+    bdb_drv_t* pdrv;
+
+    unsigned int key_len;
+    char* key_bytes;
+    
+    unsigned int data_len;
+    char* data_bytes;
+ 
+} async_set_t;
+
+typedef struct _async_get_t {
+    bdb_drv_t* pdrv;
+
+    unsigned int key_len;
+    char* key_bytes;
+    
+} async_get_t;
+
+typedef struct _async_del_t {
+    bdb_drv_t* pdrv;
+
+    unsigned int key_len;
+    char* key_bytes;
+    
+} async_del_t;
+*/
 
 static ErlDrvData start(ErlDrvPort port, char* cmd);
 static void stop(ErlDrvData handle);
@@ -55,7 +91,11 @@ static void process_set(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_get(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_del(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_count(bdb_drv_t *bdb_drv, ErlIOVec *ev);
+
 static void process_flush(bdb_drv_t *bdb_drv, ErlIOVec *ev);
+static void async_process_flush(void* pdrv);
+static int do_sync(bdb_drv_t* pdrv);
+
 static void process_bulk_get(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_compact(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_truncate(bdb_drv_t *bdb_drv, ErlIOVec *ev);
