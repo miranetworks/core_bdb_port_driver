@@ -47,41 +47,7 @@ typedef struct _bdb_drv_t {
 
   unsigned int async_thread_key;
 
-  unsigned long update_counter;
-  unsigned long max_updates_before_flush;
-  unsigned long last_sync_ms;
-  unsigned long max_sync_age_ms;
-
 } bdb_drv_t;
-
-/*
-typedef struct _async_set_t {
-    bdb_drv_t* pdrv;
-
-    unsigned int key_len;
-    char* key_bytes;
-    
-    unsigned int data_len;
-    char* data_bytes;
- 
-} async_set_t;
-
-typedef struct _async_get_t {
-    bdb_drv_t* pdrv;
-
-    unsigned int key_len;
-    char* key_bytes;
-    
-} async_get_t;
-
-typedef struct _async_del_t {
-    bdb_drv_t* pdrv;
-
-    unsigned int key_len;
-    char* key_bytes;
-    
-} async_del_t;
-*/
 
 static ErlDrvData start(ErlDrvPort port, char* cmd);
 static void stop(ErlDrvData handle);

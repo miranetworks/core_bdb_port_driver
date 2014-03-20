@@ -2,7 +2,6 @@
 
 -export([start/0]).
 
-%-define(ts, now()).
 -define(ts, os:timestamp()).
 
 -define(info(X), error_logger:info_report({?MODULE, X})).
@@ -14,6 +13,8 @@
 -define(insert_data, <<"01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n">>).
 
 start() ->
+
+    %catch observer:start(),
 
     error_logger:tty(true),
 
@@ -166,15 +167,20 @@ loop_do_some_computations(N) ->
         Pid ! {done1, N, ?ts}
 
     after 0 ->
-        random:seed(?ts),
+
+        case get(random_seeded) of
+        true ->
+            ok;
+        _ ->
+            random:seed(now()),
+            put(random_seeded, true)
+        end,
 
         V1 = random:uniform(1 + N),
 
         V2 = random:uniform(V1 + N),
 
-        NewVal = V1 + V2,
-
-%        bdb_store:get("test", <<"somekey">>),
+        _NewVal = V1 + V2,
 
         loop_do_some_computations(N+1)
 
@@ -191,8 +197,6 @@ loop_log_some_lines(Fd, N) ->
     after 0 ->
 
         ok = file:write(Fd, ?insert_data),
-
-%        bdb_store:get("test", <<"somekey">>),
 
         loop_log_some_lines(Fd, N+1)
 

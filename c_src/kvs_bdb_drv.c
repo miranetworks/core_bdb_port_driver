@@ -6,9 +6,12 @@ static void return_error_tuple(bdb_drv_t* pdrv, char* err_msg) {
                                 ERL_DRV_ATOM, driver_mk_atom(err_msg),
                                 ERL_DRV_TUPLE, 2};
 
-//    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
     ErlDrvTermData mkport = driver_mk_port(pdrv->port);
     erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
 }
 
@@ -24,9 +27,12 @@ static void return_ok_empty_list(bdb_drv_t* pdrv) {
 
                             ERL_DRV_TUPLE, 2};
 
-//    driver_output_term(pdrv->port, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+    driver_output_term(pdrv->port, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+#else
     ErlDrvTermData mkport = driver_mk_port(pdrv->port);
     erl_drv_output_term(mkport, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+#endif
 
 }
 
@@ -34,38 +40,14 @@ static void return_ok(bdb_drv_t* pdrv) {
 
     ErlDrvTermData spec[] = {ERL_DRV_ATOM, driver_mk_atom("ok")};
 
-//    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+    driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
     ErlDrvTermData mkport = driver_mk_port(pdrv->port);
     erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
 }
-
-static unsigned long gettimestamp() {
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-
-    return (unsigned long) (tv.tv_sec + (tv.tv_usec * 1000000));
-
-}
-
-static void timeout (ErlDrvData pdata) {
-    bdb_drv_t* pdrv = (bdb_drv_t*) pdata;
-    
-    unsigned long ts_ms = gettimestamp();
-
-    unsigned long last_sync_age_ms = pdrv->last_sync_ms - ts_ms;
-
-    if ((pdrv->update_counter > pdrv->max_updates_before_flush) || (last_sync_age_ms > pdrv->max_sync_age_ms)) {
-        do_sync(pdrv);
-        pdrv->update_counter = 0;
-        pdrv->last_sync_ms = gettimestamp();
-    }
-
-    driver_set_timer(pdrv->port, 1000);
-    
-}
-
 
 #ifndef ERL_DRV_EXTENDED_MARKER
 // Callback Array
@@ -102,7 +84,7 @@ static ErlDrvEntry basic_driver_entry = {
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */
-    timeout,                             /* timeout */
+    NULL,                             /* timeout */
     outputv,                          /* outputv (defined below) */
     NULL,                      /* ready_async */
     NULL,                             /* flush */
@@ -125,8 +107,13 @@ static ErlDrvData start(ErlDrvPort port, char* cmd) {
     bdb_drv_t* retval = (bdb_drv_t*) driver_alloc(sizeof(bdb_drv_t));
 
     retval->port = port;
+
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+    retval->async_thread_key = 0;
+#else
     retval->async_thread_key = driver_async_port_key(port);
-    //retval->async_thread_key = 0;
+#endif
+
     retval->pcfg = NULL;
 
     return (ErlDrvData) retval;
@@ -223,9 +210,13 @@ static void process_unkown(bdb_drv_t *bdb_drv, ErlIOVec *ev) {
   ErlDrvTermData spec[] = {ERL_DRV_ATOM, driver_mk_atom("error"),
                ERL_DRV_ATOM, driver_mk_atom("uknown_command"),
                ERL_DRV_TUPLE, 2};
-//  driver_output_term(bdb_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
+
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+    driver_output_term(bdb_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
     ErlDrvTermData mkport = driver_mk_port(bdb_drv->port);
     erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
 }
 
@@ -443,13 +434,6 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     pdrv->pcfg = pcfg;
 
-    pdrv->max_updates_before_flush = 10000;
-    pdrv->update_counter           = 0;
-    pdrv->last_sync_ms             = gettimestamp();
-    pdrv->max_sync_age_ms          = 10000;
-
-    //driver_set_timer(pdrv->port, 1000);
-
     return_ok(pdrv);
 
     return;
@@ -566,10 +550,12 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
                     ERL_DRV_TUPLE, 2};
 
-                //driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+                driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
                 ErlDrvTermData mkport = driver_mk_port(pdrv->port);
                 erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
-
+#endif
 
                 free(btree_stats);
 
@@ -599,9 +585,12 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
                     ERL_DRV_TUPLE, 2};
 
-                //driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+                driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
                 ErlDrvTermData mkport = driver_mk_port(pdrv->port);
                 erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
                 free(hash_stats);
 
@@ -897,9 +886,12 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
             spec[spec_items - 2] = ERL_DRV_TUPLE;
             spec[spec_items - 1] = 2;
 
-            //driver_output_term(pdrv->port, spec, spec_items);
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+            driver_output_term(pdrv->port, spec, spec_items);
+#else
             ErlDrvTermData mkport = driver_mk_port(pdrv->port);
             erl_drv_output_term(mkport, spec, spec_items);
+#endif
 
             free(spec);
 
@@ -1038,9 +1030,12 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                     spec[spec_items - 2] = ERL_DRV_TUPLE;
                     spec[spec_items - 1] = 2;
 
-                    //driver_output_term(pdrv->port, spec, spec_items);
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+                    driver_output_term(pdrv->port, spec, spec_items);
+#else
                     ErlDrvTermData mkport = driver_mk_port(pdrv->port);
                     erl_drv_output_term(mkport, spec, spec_items);
+#endif
 
                     free(spec);
 
@@ -1084,7 +1079,6 @@ static void set (u_int32_t key_size, void* praw_key, u_int32_t data_size, void* 
         ret = pdb->put(pdb, 0, &key, &data, 0);
     
         if        (ret == 0) {
-            pdrv->update_counter++;
             return_ok(pdrv);
             break;
         } else if (ret == DB_LOCK_DEADLOCK) {
@@ -1144,9 +1138,12 @@ static void get (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
                  
                                     ERL_DRV_TUPLE, 2};
 
-            //driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+            driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
             ErlDrvTermData mkport = driver_mk_port(pdrv->port);
             erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
             free(data.data);
 
@@ -1199,9 +1196,6 @@ static void del (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
         ret = pdb->del(pdb, NULL, &key, 0);
 
         if        ((ret == 0) || (ret == DB_NOTFOUND)) {
-
-            if (ret == 0) {pdrv->update_counter++;}
-
             return_ok(pdrv);
             break;
         } else if (ret == DB_LOCK_DEADLOCK) {
