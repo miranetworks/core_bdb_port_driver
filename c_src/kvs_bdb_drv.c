@@ -838,7 +838,8 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
 
         }
 
-        spec_items = (8 * actual_count) + 7;
+        //spec_items = (8 * actual_count) + 7;
+        spec_items = (10 * actual_count) + 7;
 
         spec = malloc(sizeof(ErlDrvTermData) * spec_items);
 
@@ -853,6 +854,9 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
             p    = NULL;
             curr = 0;
 
+            ErlDrvBinary* pbinkey;
+            ErlDrvBinary* pbindata;
+
             for (DB_MULTIPLE_INIT(p, &data); curr < actual_count; curr++) {
 
                 DB_MULTIPLE_KEY_NEXT(p, &data, retkey, retklen, retdata, retdlen);
@@ -861,18 +865,30 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
                     break;
                 } else {
 
-                    idx = 2 + (curr * 8);
+                    idx = 2 + (curr * 10);
 
-                    spec[idx + 0] = ERL_DRV_STRING;
-                    spec[idx + 1] = (ErlDrvTermData)retkey;
-                    spec[idx + 2] = retklen;
+                    pbinkey = driver_alloc_binary(retklen);
+                    pbindata = driver_alloc_binary(retdlen);
 
-                    spec[idx + 3] = ERL_DRV_STRING;
-                    spec[idx + 4] = (ErlDrvTermData)retdata;
-                    spec[idx + 5] = retdlen;
+                    if ((pbinkey == NULL) || (pbindata == NULL)) {
+                        actual_count = curr;
+                        break; 
+                    }
 
-                    spec[idx + 6] = ERL_DRV_TUPLE;
-                    spec[idx + 7] = 2;
+                    memcpy(pbinkey->orig_bytes, retkey, retklen);
+                    spec[idx + 0] = ERL_DRV_BINARY; 
+                    spec[idx + 1] = (ErlDrvSInt) pbinkey;
+                    spec[idx + 2] = (ErlDrvUInt) retklen;
+                    spec[idx + 3] = (ErlDrvUInt) 0;
+
+                    memcpy(pbindata->orig_bytes, retdata, retdlen);
+                    spec[idx + 4] = ERL_DRV_BINARY; 
+                    spec[idx + 5] = (ErlDrvSInt) pbindata;
+                    spec[idx + 6] = (ErlDrvUInt) retdlen;
+                    spec[idx + 7] = (ErlDrvUInt) 0;
+
+                    spec[idx + 8] = ERL_DRV_TUPLE;
+                    spec[idx + 9] = 2;
  
                 }
 
@@ -892,6 +908,13 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
             ErlDrvTermData mkport = driver_mk_port(pdrv->port);
             erl_drv_output_term(mkport, spec, spec_items);
 #endif
+            //Free the driver_alloc_binary keys and values
+            int k = 0;
+            for (k = 0; k < actual_count; k++) {
+                idx = 2 + (k * 10);
+                driver_free_binary((ErlDrvBinary*) spec[idx + 1]);
+                driver_free_binary((ErlDrvBinary*) spec[idx + 5]);
+            } 
 
             free(spec);
 
@@ -982,7 +1005,7 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
         
                 }
 
-                spec_items = (8 * actual_count) + 7;
+                spec_items = (10 * actual_count) + 7;
 
                 spec = malloc(sizeof(ErlDrvTermData) * spec_items);
 
@@ -997,6 +1020,9 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                     p    = NULL;
                     curr = 0;
 
+                    ErlDrvBinary* pbinkey;
+                    ErlDrvBinary* pbindata;
+
                     for (DB_MULTIPLE_INIT(p, &data); curr < actual_count; curr++) {
 
                         DB_MULTIPLE_KEY_NEXT(p, &data, retkey, retklen, retdata, retdlen);
@@ -1005,18 +1031,30 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                             break;
                         } else {
 
-                            idx = 2 + (curr * 8);
-
-                            spec[idx + 0] = ERL_DRV_STRING;
-                            spec[idx + 1] = (ErlDrvTermData)retkey;
-                            spec[idx + 2] = retklen;
-
-                            spec[idx + 3] = ERL_DRV_STRING;
-                            spec[idx + 4] = (ErlDrvTermData)retdata;
-                            spec[idx + 5] = retdlen;
-
-                            spec[idx + 6] = ERL_DRV_TUPLE;
-                            spec[idx + 7] = 2;
+                            idx = 2 + (curr * 10);
+  
+                            pbinkey = driver_alloc_binary(retklen);
+                            pbindata = driver_alloc_binary(retdlen);
+  
+                            if ((pbinkey == NULL) || (pbindata == NULL)) {
+                                actual_count = curr;
+                                break; 
+                            }
+  
+                            memcpy(pbinkey->orig_bytes, retkey, retklen);
+                            spec[idx + 0] = ERL_DRV_BINARY; 
+                            spec[idx + 1] = (ErlDrvSInt) pbinkey;
+                            spec[idx + 2] = (ErlDrvUInt) retklen;
+                            spec[idx + 3] = (ErlDrvUInt) 0;
+  
+                            memcpy(pbindata->orig_bytes, retdata, retdlen);
+                            spec[idx + 4] = ERL_DRV_BINARY; 
+                            spec[idx + 5] = (ErlDrvSInt) pbindata;
+                            spec[idx + 6] = (ErlDrvUInt) retdlen;
+                            spec[idx + 7] = (ErlDrvUInt) 0;
+  
+                            spec[idx + 8] = ERL_DRV_TUPLE;
+                            spec[idx + 9] = 2;
      
                        }
 
@@ -1036,6 +1074,15 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                     ErlDrvTermData mkport = driver_mk_port(pdrv->port);
                     erl_drv_output_term(mkport, spec, spec_items);
 #endif
+
+                    //Free the driver_alloc_binary keys and values
+                    int k = 0;
+                    for (k = 0; k < actual_count; k++) {
+                        idx = 2 + (k * 10);
+                        driver_free_binary((ErlDrvBinary*) spec[idx + 1]);
+                        driver_free_binary((ErlDrvBinary*) spec[idx + 5]);
+                    } 
+
 
                     free(spec);
 

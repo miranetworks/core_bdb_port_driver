@@ -436,12 +436,9 @@ traverse_foldr(_Port, _Fun, Acc, _Offset, _Count) ->
     {ok, Acc}.
 
 
-traverse_fold_batch(Fun, Acc, [{LKey, LData} | T]) ->
-
-    NewAcc = Fun(list_to_binary(LKey), list_to_binary(LData), Acc),
-
+traverse_fold_batch(Fun, Acc, [{Key, Data} | T]) ->
+    NewAcc = Fun(Key, Data, Acc),
     traverse_fold_batch(Fun, NewAcc, T);
-
 traverse_fold_batch(_, Acc, []) -> Acc.
 
-
+%EOF

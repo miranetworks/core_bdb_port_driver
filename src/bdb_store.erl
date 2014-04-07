@@ -54,8 +54,8 @@ set_sync_interval(DbName, IntervalMs) when is_integer(IntervalMs) and (IntervalM
 %%
 %% NOTE: This function might return less records than requested, if the amount of requested records could not be fitted into buffer_size (as per start_link options)
 %%
-%% NOTE: K and V are lists, the original binaries that were passed in as per set(DbName, Key, Value) can be determined by list_to_binary() 
--spec bulk_get(string(), pos_integer(), non_neg_integer()) -> {ok, list({list(),list()})} | {error, any()}.
+%% NOTE: K and V are binaries that were passed in as per set(DbName, Key, Value)
+-spec bulk_get(string(), pos_integer(), non_neg_integer()) -> {ok, list({binary(),binary()})} | {error, any()}.
 bulk_get(DbName, Offset, Count) ->
     bdb_port_driver_proxy:bulk_get(DbName, Offset, Count).
 
@@ -242,9 +242,9 @@ do_foldr_nonlock(_DbName, _Fun, Acc, _Start, _BatchSize) ->
 
 
 %% @hidden
-loop_fold_nonlock(Fun, Acc, [{LKey, LValue} | T]) ->
+loop_fold_nonlock(Fun, Acc, [{Key, Value} | T]) ->
 
-    NewAcc = Fun(list_to_binary(LKey), list_to_binary(LValue), Acc),
+    NewAcc = Fun(Key, Value, Acc),
 
     loop_fold_nonlock(Fun, NewAcc, T);
 

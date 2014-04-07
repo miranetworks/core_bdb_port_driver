@@ -269,13 +269,13 @@ foldr_nonlock2_test() ->
 
     kill(Pid).
 
-bulk_get_test() ->
+bulk_get_btree_test() ->
 
     ok = error_logger:tty(false),
 
     ?assertCmd("rm -fr ./data"),
 
-    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}]),
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}, {db_type, btree}]),
 
     ?assert(is_pid(Pid)),
 
@@ -289,9 +289,9 @@ bulk_get_test() ->
 
     ?assertEqual(100, length(BG1)),
 
-    ExpectedKey = binary_to_list(term_to_binary(50)),
+    ExpectedKey = term_to_binary(50),
 
-    ?assertEqual({ok, [{ExpectedKey, "V50"}]}, bdb_store:bulk_get("test", 50, 1)),
+    ?assertEqual({ok, [{ExpectedKey, <<"V50">>}]}, bdb_store:bulk_get("test", 50, 1)),
 
     ?assertEqual(ok, bdb_store:compact("test")),
 
@@ -299,9 +299,44 @@ bulk_get_test() ->
 
     ?assertEqual(ok, bdb_store:sync("test")),
     
-    ?assertEqual({ok, [{ExpectedKey, "V50"}]}, bdb_store:bulk_get("test", 50, 1)),
+    ?assertEqual({ok, [{ExpectedKey, <<"V50">>}]}, bdb_store:bulk_get("test", 50, 1)),
 
     kill(Pid).
+
+bulk_get_hash_test() ->
+
+    ok = error_logger:tty(false),
+
+    ?assertCmd("rm -fr ./data"),
+
+    {ok, Pid} =  bdb_store:start_link("test", "./data", [{txn_enabled, false}, {db_type, hash}]),
+
+    ?assert(is_pid(Pid)),
+
+    ?assertEqual({ok, 0},  bdb_store:count("test")),
+
+    ?assertEqual(ok, loop_insert(100)),
+
+    ?assertMatch({ok, _}, bdb_store:bulk_get("test", 1, 1000)),
+
+    {ok, BG1} = bdb_store:bulk_get("test", 1, 1000),
+
+    ?assertEqual(100, length(BG1)),
+
+    ExpectedKey = term_to_binary(98),
+
+    ?assertEqual({ok, [{ExpectedKey, <<"V98">>}]}, bdb_store:bulk_get("test", 50, 1)),
+
+    ?assertEqual(ok, bdb_store:compact("test")),
+
+    ?assertEqual({ok, 100},  bdb_store:count("test")),
+
+    ?assertEqual(ok, bdb_store:sync("test")),
+    
+    ?assertEqual({ok, [{ExpectedKey, <<"V98">>}]}, bdb_store:bulk_get("test", 50, 1)),
+
+    kill(Pid).
+
 
 sync_test() ->
 
