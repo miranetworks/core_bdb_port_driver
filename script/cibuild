@@ -1,8 +1,11 @@
 #!/bin/bash
 
-export PATH=/root/erlang/lib/R14B04/bin/:${PATH}
-
 echo "I bdb_port_driver you janky!"
+
+apt-get update
+apt-get -y install libdb-dev
+
+. /home/ubuntu/erlang/R16B03-1/activate
 
 rm -fr deps
 

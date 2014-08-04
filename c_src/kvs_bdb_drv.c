@@ -1083,7 +1083,6 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                         driver_free_binary((ErlDrvBinary*) spec[idx + 5]);
                     } 
 
-
                     free(spec);
 
                 }
