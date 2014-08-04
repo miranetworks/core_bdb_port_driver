@@ -6,7 +6,12 @@ static void return_error_tuple(bdb_drv_t* pdrv, char* err_msg) {
                                 ERL_DRV_ATOM, driver_mk_atom(err_msg),
                                 ERL_DRV_TUPLE, 2};
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
     driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
+    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+    erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
 }
 
@@ -22,7 +27,12 @@ static void return_ok_empty_list(bdb_drv_t* pdrv) {
 
                             ERL_DRV_TUPLE, 2};
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
     driver_output_term(pdrv->port, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+#else
+    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+    erl_drv_output_term(mkport, empty_spec, sizeof(empty_spec) / sizeof(empty_spec[0]));
+#endif
 
 }
 
@@ -30,7 +40,12 @@ static void return_ok(bdb_drv_t* pdrv) {
 
     ErlDrvTermData spec[] = {ERL_DRV_ATOM, driver_mk_atom("ok")};
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
     driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
+    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+    erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
 }
 
@@ -203,7 +218,14 @@ static void process_unkown(bdb_drv_t *bdb_drv, ErlIOVec *ev) {
   ErlDrvTermData spec[] = {ERL_DRV_ATOM, driver_mk_atom("error"),
                ERL_DRV_ATOM, driver_mk_atom("uknown_command"),
                ERL_DRV_TUPLE, 2};
-  driver_output_term(bdb_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
+
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
+    driver_output_term(bdb_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
+    ErlDrvTermData mkport = driver_mk_port(bdb_drv->port);
+    erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
+
 }
 
 
@@ -556,7 +578,13 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
                     ERL_DRV_TUPLE, 2};
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
                 driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
+                ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+                erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
+
 
                 free(btree_stats);
 
@@ -586,7 +614,13 @@ static void process_count( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
                     ERL_DRV_TUPLE, 2};
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
                 driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
+                ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+                erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
+
 
                 free(hash_stats);
 
@@ -883,7 +917,12 @@ static void bulk_get_btree (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) 
             spec[spec_items - 2] = ERL_DRV_TUPLE;
             spec[spec_items - 1] = 2;
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
             driver_output_term(pdrv->port, spec, spec_items);
+#else
+            ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+            erl_drv_output_term(mkport, spec, spec_items);
+#endif
 
             free(spec);
 
@@ -1022,7 +1061,12 @@ static void bulk_get_hash (u_int32_t offset, u_int32_t count, bdb_drv_t *pdrv) {
                     spec[spec_items - 2] = ERL_DRV_TUPLE;
                     spec[spec_items - 1] = 2;
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
                     driver_output_term(pdrv->port, spec, spec_items);
+#else
+                    ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+                    erl_drv_output_term(mkport, spec, spec_items);
+#endif
 
                     free(spec);
 
@@ -1119,7 +1163,12 @@ static void get (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
                  
                                     ERL_DRV_TUPLE, 2};
 
+#if ((ERL_DRV_EXTENDED_MAJOR_VERSION == 1) || ((ERL_DRV_EXTENDED_MAJOR_VERSION == 2) && (ERL_DRV_EXTENDED_MINOR_VERSION == 0)))
             driver_output_term(pdrv->port, spec, sizeof(spec) / sizeof(spec[0]));
+#else
+            ErlDrvTermData mkport = driver_mk_port(pdrv->port);
+            erl_drv_output_term(mkport, spec, sizeof(spec) / sizeof(spec[0]));
+#endif
 
             free(data.data);
 
