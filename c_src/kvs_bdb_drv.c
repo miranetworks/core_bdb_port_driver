@@ -118,20 +118,9 @@ static void stop(ErlDrvData handle) {
 
     if (pdrv->pcfg) {
 
-        
-
         if (pdrv->pcfg->pdb) {
-
             pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0);
     
-            if (pdrv->pcfg->replication_enabled) {
-
-                pdrv->pcfg->penv->rep_sync(pdrv->pcfg->penv, 0);
-
-                pdrv->pcfg->penv->log_flush(pdrv->pcfg->penv, NULL);
-                
-            }
-
             pdrv->pcfg->pdb->close(pdrv->pcfg->pdb, 0);
 
             pdrv->pcfg->pdb = NULL;
@@ -139,10 +128,7 @@ static void stop(ErlDrvData handle) {
             pdrv->pcfg->penv->close(pdrv->pcfg->penv, 0);
 
             pdrv->pcfg->penv = NULL;
-
-
         }
-
 
         if (pdrv->pcfg->buffer) {
             free(pdrv->pcfg->buffer);
@@ -200,13 +186,6 @@ static void outputv(ErlDrvData handle, ErlIOVec *ev) {
         process_truncate(pdrv, ev);
         break;
 
-#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
-    case 'R':
-        process_add_replication_node(pdrv, ev);
-        break;
-#endif
-
-
     default:
         process_unkown(pdrv, ev);
     }
@@ -259,7 +238,6 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     int txn_enabled         = bytes[1];
     int db_type             = bytes[2];
-    int replication_enabled = bytes[3];
 
     cache_size_bytes           = (uint32_t) ntohl(* ((uint32_t*) (bytes + 4) ));
     page_size_bytes            = (uint32_t) ntohl(* ((uint32_t*) (bytes + 4 + 4) ));
@@ -275,16 +253,6 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
     char *data_dir_bytes     = data_dir_len_bytes + 4;
     uint32_t data_dir_length = (uint32_t) ntohl(* ((uint32_t*) data_dir_len_bytes) );
 
-    char *replication_if_len_bytes = data_dir_bytes + data_dir_length;
-    char *replication_if_bytes     = replication_if_len_bytes + 4;
-    uint32_t replication_if_length = (uint32_t) ntohl(* ((uint32_t*) replication_if_len_bytes) );
-
-#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
-    uint32_t replication_port = (uint32_t) ntohl(* ((uint32_t*) (replication_if_bytes + replication_if_length) ));
-#endif
-
-    char replication_type =  ((char*)(replication_if_bytes + replication_if_length + 4))[0];
-
     pcfg = (drv_cfg*) malloc(sizeof(drv_cfg));
 
     pcfg->buffer = (char*) malloc(bulk_get_buffer_size_bytes);
@@ -298,17 +266,12 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     pcfg->txn_enabled = txn_enabled;
 
-    pcfg->replication_enabled = replication_enabled;
-
     pcfg->data_dir             = malloc(data_dir_length + 1);
     pcfg->db_name              = malloc(db_name_length + 1);
-    pcfg->rep_if               = malloc(replication_if_length + 1);
-    pcfg->is_master            = 0;
     pcfg->page_size_bytes      = page_size_bytes;
 
     pcfg->data_dir[data_dir_length] = 0;
     pcfg->db_name[db_name_length] = 0;
-    pcfg->rep_if[replication_if_length] = 0;
 
     if (db_type == 'B') {
         pcfg->db_type = DB_BTREE;
@@ -316,15 +279,8 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
         pcfg->db_type = DB_HASH;
     }
 
-    if (replication_type == 'M') {
-        pcfg->replication_type = DB_REP_MASTER;
-    } else {
-        pcfg->replication_type = DB_REP_CLIENT;
-    }
-
     memcpy(pcfg->data_dir, data_dir_bytes, data_dir_length);
     memcpy(pcfg->db_name, db_name_bytes, db_name_length);
-    memcpy(pcfg->rep_if, replication_if_bytes, replication_if_length);
 
     pcfg->bulk_get_buffer_size_bytes = bulk_get_buffer_size_bytes;
 
@@ -340,13 +296,7 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
     open_flags = DB_CREATE | DB_INIT_MPOOL;
 
     if (pcfg->txn_enabled) {
-
         open_flags |= DB_INIT_LOCK | DB_THREAD | DB_INIT_TXN | DB_INIT_LOG | DB_REGISTER | DB_RECOVER;
-
-        if (pcfg->replication_enabled) {
-            open_flags |= DB_INIT_REP;
-        }
-
     }
 
     //penv->set_msgcall(penv, (FILE*)stderr);
@@ -364,83 +314,43 @@ static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev) {
         return;
     }
 
-//Replication stuff ....
+    //Only open the table if not in replication mode.... for rep mode the table will be opened in event handler ...
 
-    if (pcfg->replication_enabled) {
-
-#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
-
-        penv->set_event_notify(penv, event_callback);
-
-        if ((ret = penv->repmgr_set_local_site(penv, pcfg->rep_if, replication_port, 0)) != 0) {
-            return_error_tuple(pdrv, db_strerror(ret));
-            return;
-        }
-
-        if (pcfg->replication_type == DB_REP_MASTER) {
-            penv->rep_set_priority(penv, 100);
-        } else {
-            penv->rep_set_priority(penv, 0);
-        }
-
-        ret = penv->repmgr_set_ack_policy(penv, DB_REPMGR_ACKS_NONE);
-        if (ret != 0) {
-            return_error_tuple(pdrv, db_strerror(ret));
-            return;
-        }
-
-        ret = penv->repmgr_start(penv, 10, pcfg->replication_type);
-        if (ret != 0) {
-            return_error_tuple(pdrv, db_strerror(ret));
-            return;
-        }
-#else
-
-        return_error_tuple(pdrv, "Replication not supported in this version of Berkeley DB");
+    ret = db_create(&pdb, penv, 0);
+    if (ret != 0) {
+        return_error_tuple(pdrv, db_strerror(ret));
         return;
-
-#endif
-
-    } else {
-
-        //Only open the table if not in replication mode.... for rep mode the table will be opened in event handler ...
-
-        ret = db_create(&pdb, penv, 0);
-        if (ret != 0) {
-            return_error_tuple(pdrv, db_strerror(ret));
-            return;
-        }
-
-        if (pcfg->db_type == DB_BTREE) {
-
-            ret = pdb->set_flags(pdb, DB_RECNUM);
-            if (ret != 0) {
-                return_error_tuple(pdrv, db_strerror(ret));
-                return;
-            }
-        }
-
-        ret = pdb->set_pagesize(pdb, page_size_bytes);
-        if (ret != 0) {
-            return_error_tuple(pdrv, db_strerror(ret));
-            return;
-        }
-
-        pdb->set_errpfx(pdb, pcfg->db_name);
-
-        pcfg->db_open_flags = DB_CREATE;
- 
-        if (pcfg->txn_enabled) {
-            pcfg->db_open_flags |= DB_THREAD; 
-        }
-
-        if ((ret = pdb->open(pdb, NULL, pcfg->db_name, pcfg->db_name, pcfg->db_type, pcfg->db_open_flags, 0)) != 0) {
-            return_error_tuple(pdrv, db_strerror(ret));
-            return;
-        }
-
-        pcfg->pdb  = pdb;
     }
+
+    if (pcfg->db_type == DB_BTREE) {
+
+        ret = pdb->set_flags(pdb, DB_RECNUM);
+        if (ret != 0) {
+            return_error_tuple(pdrv, db_strerror(ret));
+            return;
+        }
+    }
+
+    ret = pdb->set_pagesize(pdb, page_size_bytes);
+    if (ret != 0) {
+        return_error_tuple(pdrv, db_strerror(ret));
+        return;
+    }
+
+    pdb->set_errpfx(pdb, pcfg->db_name);
+
+    pcfg->db_open_flags = DB_CREATE;
+ 
+    if (pcfg->txn_enabled) {
+        pcfg->db_open_flags |= DB_THREAD; 
+    }
+
+    if ((ret = pdb->open(pdb, NULL, pcfg->db_name, pcfg->db_name, pcfg->db_type, pcfg->db_open_flags, 0)) != 0) {
+        return_error_tuple(pdrv, db_strerror(ret));
+        return;
+    }
+
+    pcfg->pdb  = pdb;
 
     pcfg->penv = penv;
 
@@ -644,36 +554,17 @@ static void process_flush( bdb_drv_t* pdrv, ErlIOVec *ev) {
         return;
     }
 
-        if (pdrv->pcfg->pdb == NULL) {
-            return_error_tuple(pdrv, "Database not opened!");
-            return;
-        }
-
+    if (pdrv->pcfg->pdb == NULL) {
+        return_error_tuple(pdrv, "Database not opened!");
+        return;
+    }
 
     int ret;
 
     if ((ret = pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0))) {
         return_error_tuple(pdrv, db_strerror(ret));
     } else {
-
-            if (pdrv->pcfg->replication_enabled) {
-
-                if ((ret = pdrv->pcfg->penv->rep_sync(pdrv->pcfg->penv, 0)) == 0) {
-
-                    if ((ret = pdrv->pcfg->penv->log_flush(pdrv->pcfg->penv, NULL))) {
-                        return_error_tuple(pdrv, db_strerror(ret));
-                    } else {
-                        return_ok(pdrv);
-                    }
-
-                } else {
-                    return_error_tuple(pdrv, db_strerror(ret));
-                }
-
-            } else {
-                return_ok(pdrv);
-            }
-
+        return_ok(pdrv);
     }
 
     return;
@@ -687,11 +578,11 @@ static void process_compact( bdb_drv_t* pdrv, ErlIOVec *ev) {
         return_error_tuple(pdrv, "Database not opened!");
         return;
     }
-        if (pdrv->pcfg->pdb == NULL) {
-            return_error_tuple(pdrv, "Database not opened!");
-            return;
-        }
 
+    if (pdrv->pcfg->pdb == NULL) {
+        return_error_tuple(pdrv, "Database not opened!");
+        return;
+    }
 
     int ret;
 
@@ -734,45 +625,6 @@ static void process_truncate( bdb_drv_t* pdrv, ErlIOVec *ev) {
     return;
 
 }
-
-#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
-
-static void process_add_replication_node( bdb_drv_t* pdrv, ErlIOVec *ev) {
-    ErlDrvBinary* data = ev->binv[1];
-
-    char *bytes = data->orig_bytes;
-
-    char *if_len_bytes = bytes + 1;
-    char *if_bytes = if_len_bytes + 4;
-    uint32_t if_len = (uint32_t) ntohl(* ((uint32_t*) if_len_bytes) );
-
-    char *if_port_bytes = if_bytes + if_len;
-    uint32_t if_port = (uint32_t) ntohl(* ((uint32_t*) if_port_bytes) );
-
-    int ret ;
-
-    char ip_addr[256];
-
-    memcpy(ip_addr, if_bytes, if_len);
-
-    ip_addr[if_len] = 0;
-
-    if (pdrv->pcfg) {
-
-        if ((ret = pdrv->pcfg->penv->repmgr_add_remote_site(pdrv->pcfg->penv, ip_addr, if_port, NULL, 0)) == 0) {
-            return_ok(pdrv);
-        } else {
-            return_error_tuple(pdrv, db_strerror(ret));
-        }
-
-    } else {
-
-        return_error_tuple(pdrv, "Database not opened!");
-    }
-
-}
-#endif
-
 
 static void process_bulk_get( bdb_drv_t* pdrv, ErlIOVec *ev) {
     ErlDrvBinary* data = ev->binv[1];
@@ -1240,99 +1092,5 @@ static void del (u_int32_t key_size, void* praw_key, bdb_drv_t *pdrv) {
     return;
 
 }
-
-#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
-
-static void event_callback(DB_ENV* penv, u_int32_t event, void* info) {
-
-    drv_cfg* pcfg;
-
-    pcfg = (drv_cfg*) penv->app_private;
-
-    int ret;
-
-    DB* pdb;
-
-    switch (event) {
-    case DB_EVENT_PANIC:
-        //fprintf(stderr, "DB_EVENT_PANIC\n");
-        break;
-    case DB_EVENT_REP_CLIENT:
-        //fprintf(stderr, "DB_EVENT_REP_CLIENT\n");
-        pcfg->is_master = 0;
-        break;
-
-    case DB_EVENT_REP_ELECTED:
-        //fprintf(stderr, "DB_EVENT_REP_ELECTED\n");
-        break;
-
-    case DB_EVENT_REP_MASTER:
-        //fprintf(stderr, "DB_EVENT_REP_MASTER\n");
-        pcfg->is_master = 1;
-        goto do_open_db;
-        break;
- 
-    case DB_EVENT_REP_NEWMASTER:
-
-        //fprintf(stderr, "DB_EVENT_REP_NEWMASTER\n");
-        if (pcfg->pdb == NULL) {
-            goto do_open_db;
-        }
-
-        break;
-
-    case DB_EVENT_REP_PERM_FAILED:
-        //fprintf(stderr, "DB_EVENT_REP_PERM_FAILED\n");
-        break;
-
-    case DB_EVENT_REP_STARTUPDONE:
-        goto do_open_db;
-
-        break;
-
-    case DB_EVENT_WRITE_FAILED:
-        //fprintf(stderr, "DB_EVENT_REP_PERM_FAILED\n");
-        break;
-
-    default:
-        break;
-    }
-
-    return;
-
-do_open_db:
-
-        if ((ret = db_create(&pdb, penv, 0)) != 0) {
-            return;
-        }
-
-        if (pcfg->db_type == DB_BTREE) {
-            if ((ret = pdb->set_flags(pdb, DB_RECNUM)) != 0) {
-                return;
-            }
-        }
-
-        if ((ret = pdb->set_pagesize(pdb, pcfg->page_size_bytes)) != 0) {
-            return;
-        }
-
-        pdb->set_errpfx(pdb, pcfg->db_name);
-
-        if (pcfg->is_master) {
-            pcfg->db_open_flags = DB_CREATE | DB_THREAD | DB_AUTO_COMMIT;
-        } else {
-            pcfg->db_open_flags = DB_THREAD | DB_AUTO_COMMIT;
-        }
-
-        if ((ret = pdb->open(pdb, NULL, pcfg->db_name, pcfg->db_name, pcfg->db_type, pcfg->db_open_flags, 0)) != 0) {
-            return;
-        }
-
-        pcfg->pdb  = pdb;
-
-
-}
-
-#endif
 
 //EOF

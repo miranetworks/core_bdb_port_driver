@@ -29,10 +29,6 @@ struct _drv_cfg {
 
     u_int32_t   txn_enabled;
 
-    u_int32_t   is_master;   
-    u_int32_t   replication_enabled;
-    u_int32_t   replication_type;
-
     u_int32_t   db_open_flags;
 
     u_int32_t   bulk_get_buffer_size_bytes;
@@ -41,9 +37,8 @@ struct _drv_cfg {
 };
 
 typedef struct _bdb_drv_t {
-  ErlDrvPort port;
-
-  drv_cfg *pcfg;
+    ErlDrvPort port;
+    drv_cfg *pcfg;
 } bdb_drv_t;
 
 
@@ -60,11 +55,6 @@ static void process_bulk_get(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_compact(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_truncate(bdb_drv_t *bdb_drv, ErlIOVec *ev);
 static void process_unkown(bdb_drv_t *bdb_drv, ErlIOVec *ev);
-
-#if ((DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR > 4)))
-static void process_add_replication_node(bdb_drv_t *bdb_drv, ErlIOVec *ev);
-static void event_callback __P((DB_ENV*, u_int32_t, void*));
-#endif
 
 static void open_db(bdb_drv_t* pdrv, ErlIOVec *ev);
 static void set (u_int32_t key_size, void* praw_key, u_int32_t data_size, void* praw_data, bdb_drv_t *pdrv);

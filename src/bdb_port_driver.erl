@@ -4,7 +4,7 @@
 
 -include("bdb_port_driver.hrl").
 
--export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, add_replication_node/3, fold/5, foldr/5, map/3]).
+-export([start_link/3, set/3, get/2, del/2, count/1, sync/1, bulk_get/3, truncate/1, compact/1, fold/5, foldr/5, map/3]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -42,9 +42,6 @@ truncate(DbName)->
 compact(DbName)->
     gen_server:call(?NAME(DbName), compact, infinity).
 
-add_replication_node(DbName, StringIpAddr, Port)->
-    gen_server:call(?NAME(DbName), {add_replication_node, StringIpAddr, Port}, infinity).
-
 fold(DbName, Fun, Acc, Start, BatchSize)->
     gen_server:call(?NAME(DbName), {fold, Fun, Acc, Start, BatchSize}, infinity).
 
@@ -58,15 +55,12 @@ map(DbName, Key, Fun)->
 %Options: List of {option, value} pairs where option can be:
 %   
 %   sync        -> integer() > 0 (Will call bdb_store:sync at "sync" milliseconds intervals)
-%   txn_enabled -> true | false (Must be true for replication)
+%   txn_enabled -> true | false
 %   db_type     -> btree | hash
 %   cache_size  -> integer() (Size of the in memory cahc in bytes - must be a multiple of 1024 !!!)
 %   page_size   -> integer() (B-Tree page size in bytes)
 %   buffer_size -> integer() (Size of the bulk_get buffer in bytes - must new a multiple of 1024 !!!!) 
-%   rep_enabled -> true | false (Enable replication)
-%   rep_local   -> {Type, ListenIpAddr, ListenPort} 
-%                   Where ListenIpAddr is a string and ListenPort is an integer and
-%                   Type -> master | client | election
+%
 
 init([DbName, DataDir, Options]) ->
  
@@ -79,8 +73,6 @@ init([DbName, DataDir, Options]) ->
     CacheSizeBytes             = option(cache_size,  Options, trunc(5 * 1024 * 1024)),
     PageSizeBytes              = option(page_size,   Options, 4096),
     BulkGetBufferSizeBytes     = option(buffer_size, Options, trunc(1 * 1024 * 1024)),
-    RepEnabled                 = option(rep_enabled, Options, false),
-    {RepLocalType, RepLocalIf, RepLocalPort} = option(rep_local,   Options, {master, "0.0.0.0", 23456}),
 
     true = is_integer(CacheSizeBytes),
     true = is_integer(PageSizeBytes),
@@ -98,47 +90,23 @@ init([DbName, DataDir, Options]) ->
         BinDataDirSize = size(BinDataDir),
         BinDbNameSize = size(BinDbName),
         
-        BinRepLocalIf = list_to_binary(RepLocalIf),
-        BinRepLocalIfSize = size(BinRepLocalIf),
-
-        if (RepEnabled == true) ->
-            Rep = 1;
-
-        true ->
-            Rep = 0
-
-        end,
-
-        case RepLocalType of
-        master ->
-            RepType = $M;
-
-        client ->
-            RepType = $C;
-
-        _ ->
-            RepType = $E
-
-        end,
-
-
+        Txn =
         if (TxnEnabled == true) ->
-            Txn = 1;
-
+            1;
         true ->
-            Txn = 0
-
+            0
         end,
 
+        Dbt = 
         if (DbType == btree) ->
-            Dbt = $B;
-
+            $B;
         true ->
-            Dbt = $H
-
+            $H
         end,
 
         Cmd = $O,
+
+        Spare0 = 0,
 
         Message =  <<   Cmd:8/unsigned-big-integer, 
 
@@ -146,7 +114,7 @@ init([DbName, DataDir, Options]) ->
 
                         Dbt:8/unsigned-big-integer, 
 
-                        Rep:8/unsigned-big-integer, 
+                        Spare0:8/unsigned-big-integer, 
 
                         CacheSizeBytes:32/unsigned-big-integer,
                         PageSizeBytes:32/unsigned-big-integer,
@@ -156,13 +124,8 @@ init([DbName, DataDir, Options]) ->
                         BinDbName/binary, 
 
                         BinDataDirSize:32/unsigned-big-integer, 
-                        BinDataDir/binary,
+                        BinDataDir/binary
                         
-                        BinRepLocalIfSize:32/unsigned-big-integer,
-                        BinRepLocalIf/binary,
-                        RepLocalPort:32/unsigned-big-integer,
-                        RepType:8/unsigned-big-integer
-
                         >>,
 
         case send_command(Port, Message) of
@@ -178,20 +141,6 @@ init([DbName, DataDir, Options]) ->
 	Error ->
 	    Error
     end.
-
-handle_call({add_replication_node, IpAddr, Port}, _From, State)
-  when is_list(IpAddr) and is_integer(Port) ->
-
-    Cmd = $R,
-
-    BinIpAddr = list_to_binary(IpAddr),
-    BinIpAddrSize = size(BinIpAddr),
-
-    Message =  <<Cmd:8/unsigned-big-integer, BinIpAddrSize:32/unsigned-big-integer, BinIpAddr/binary, Port:32/unsigned-big-integer>>,
-
-    Reply = send_command(State#state.port, Message),
-    {reply, Reply, State};
-
 
 handle_call(truncate, _From, State) ->
 

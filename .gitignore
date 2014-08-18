@@ -1,3 +1,6 @@
 deps
 .eunit
 data
+c_src/*.o
+priv/*.so
+/benchmark
