@@ -4,3 +4,4 @@ data
 c_src/*.o
 priv/*.so
 /benchmark
+/ebin
