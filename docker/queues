@@ -1,4 +1,0 @@
-#!/bin/bash
-
-docker exec -t -i mesh_proc "/workspace/base/rel/files/os_scripts/all_queues.sh"
-
