@@ -119,7 +119,8 @@ static void stop(ErlDrvData handle) {
     if (pdrv->pcfg) {
 
         if (pdrv->pcfg->pdb) {
-            pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0);
+            pdrv->pcfg->penv->memp_sync(pdrv->pcfg->penv, NULL);
+            //pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0);
     
             pdrv->pcfg->pdb->close(pdrv->pcfg->pdb, 0);
 
@@ -561,7 +562,8 @@ static void process_flush( bdb_drv_t* pdrv, ErlIOVec *ev) {
 
     int ret;
 
-    if ((ret = pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0))) {
+    //if ((ret = pdrv->pcfg->pdb->sync(pdrv->pcfg->pdb, 0))) {
+    if ((ret = pdrv->pcfg->penv->memp_sync(pdrv->pcfg->penv, NULL))) {
         return_error_tuple(pdrv, db_strerror(ret));
     } else {
         return_ok(pdrv);

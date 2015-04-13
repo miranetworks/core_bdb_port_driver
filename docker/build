@@ -1,0 +1,9 @@
+#!/bin/bash
+export DOCKER_DEV_UID=$(id -u ${USER})
+if [ -z "$1" ]; then
+   NOCACHE="false"
+else
+   NOCACHE="true"
+fi
+cat Dockerfile.template | envsubst | docker build --no-cache=${NOCACHE} -t bdb_port_driver -
+unset DOCKER_DEV_UID

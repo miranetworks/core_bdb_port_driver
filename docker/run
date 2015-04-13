@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run --rm=true -t -i -u="developer" --name bdb_port_driver -v $(dirname $SSH_AUTH_SOCK):$(dirname $SSH_AUTH_SOCK) -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK -v $(pwd)/../:/workspace/base  bdb_port_driver $1

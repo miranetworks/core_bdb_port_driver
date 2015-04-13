@@ -1,0 +1,4 @@
+#!/bin/bash
+WRKDIR=`readlink -f $(pwd)`
+docker logs -f $(docker run -d -u="developer" --name bdb_port_driver -v $(dirname $SSH_AUTH_SOCK):$(dirname $SSH_AUTH_SOCK) -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK -v $(pwd)/../:/workspace/base  bdb_port_driver $1) | sed "s#\/workspace\/base#${WRKDIR}#"
+docker rm -f bdb_port_driver
