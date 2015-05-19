@@ -1,0 +1,4 @@
+#!/bin/bash
+cd ci 
+./build
+./run "make test"

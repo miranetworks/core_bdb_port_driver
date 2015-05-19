@@ -36,10 +36,6 @@ all: clean app test
 dbuild: /Dockerfile.template
 	cd docker; ./build $(if $(nocache),nocache)
 
-dcibuild:
-	cd ci; ./build
-	cd ci; ./run "make test"
-
 dtest:
 	cd docker; ./run_test "make test"
 
