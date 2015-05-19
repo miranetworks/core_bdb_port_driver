@@ -1,4 +1,4 @@
 #!/bin/bash
 WRKDIR=`readlink -f $(pwd)`
-docker run --rm=true -i --name bdb_port_driver -v $(dirname $SSH_AUTH_SOCK):$(dirname $SSH_AUTH_SOCK) -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK -v $(pwd)/../:/workspace/base bdb_port_driver $1 
-docker rm -f bdb_port_driver_ci || true
+docker run --rm=true -i --name bdb_port_driver -v $(dirname $SSH_AUTH_SOCK):$(dirname $SSH_AUTH_SOCK) -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK -v $(pwd)/../:/workspace/base bdb_port_driver $1
+docker rm -f bdb_port_driver 2>/dev/null  || true

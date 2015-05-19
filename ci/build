@@ -1,5 +1,0 @@
-#!/bin/bash
-EXISTS=`docker images | grep bdb_port_driver_ci`
-if [ -z "${EXISTS}" ]; then
-    docker build --no-cache=true -t bdb_port_driver_ci .
-fi

@@ -31,18 +31,5 @@ test: app
 all: clean app test
 	@echo "Done."
 
-
-###Docker targets
-dbuild: docker/Dockerfile.template
-	cd docker; ./build $(if $(nocache),nocache)
-
-dtest:
-	cd docker; ./run_test "make test"
-
-dclean:
-	cd docker; ./run "make clean"
-
-drun:
-	cd docker; ./run "make run"
-
+include docker/docker.mk
 
