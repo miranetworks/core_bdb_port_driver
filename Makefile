@@ -33,7 +33,7 @@ all: clean app test
 
 
 ###Docker targets
-dbuild: /Dockerfile.template
+dbuild: docker/Dockerfile.template
 	cd docker; ./build $(if $(nocache),nocache)
 
 dtest:
