@@ -33,12 +33,12 @@ all: clean app test
 
 
 ###Docker targets
-dbuild: docker/Dockerfile.template
+dbuild: /Dockerfile.template
 	cd docker; ./build $(if $(nocache),nocache)
 
-
 dcibuild:
-	cd docker; ./run "./script/cibuild"
+	cd ci; ./build
+	cd ci; ./run "make test"
 
 dtest:
 	cd docker; ./run_test "make test"
