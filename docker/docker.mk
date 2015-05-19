@@ -3,6 +3,7 @@ dbuild: docker/Dockerfile.template
 	cd docker; ./build $(if $(nocache),nocache)
 
 dcibuild: dbuild
+	rm -fr deps
 	cd docker; ./run_for_ci "make test"
 
 dtest: dbuild
