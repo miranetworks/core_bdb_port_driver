@@ -1,6 +1,6 @@
 ###Docker targets
 dbuild: docker/Dockerfile.template
-	cd docker; ./build $(if $(nocache),nocache)
+	cd docker; ./build $(if $(nocache),"--no-cache")
 
 dcibuild: dbuild
 	rm -fr deps

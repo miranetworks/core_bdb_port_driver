@@ -1,12 +1,4 @@
 #!/bin/bash
-EXISTS=`docker images | grep bdb_port_driver`
-if [ -z "$1" ]; then
-    NOCACHE="false"
-else
-    NOCACHE="true"
-fi
-if [[ -z "${EXISTS}" || ${NOCACHE} = "true" ]]; then
-    export DOCKER_DEV_UID=$(id -u ${USER})
-    cat Dockerfile.template | envsubst | docker build --no-cache=${NOCACHE} -t bdb_port_driver -
-    unset DOCKER_DEV_UID
-fi
+export DOCKER_DEV_UID=$(id -u ${USER})
+cat Dockerfile.template | envsubst | docker build $@ -t bdb_port_driver -
+unset DOCKER_DEV_UID
