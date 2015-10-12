@@ -14,8 +14,4 @@ if [ ! -f $APP_CONF ]; then
     ./rel/files/gen_config $APP_CONF $SCHEMA_DIR
 fi
 
-CUTTLEFISH_CFG=`./deps/cuttlefish/cuttlefish -e ./rel/files/config -s $SCHEMA_DIR -d $GEN_CFG_DIR -c $APP_CONF`
-
-exec erl -pa $PWD/ebin $PWD/deps/*/ebin -boot start_sasl -s mira_bdb_port_driver ${CUTTLEFISH_CFG}
-
-
+exec erl -pa $PWD/ebin $PWD/deps/*/ebin -boot start_sasl -s mira_bdb_port_driver 

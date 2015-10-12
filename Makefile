@@ -28,7 +28,6 @@ run: all
 	mkdir -p ./log
 	mkdir -p ./priv
 	rm -fr priv/ssl
-	cp -a rel/files/ssl ./priv/.
 	./start.sh
 
 release: all
@@ -45,19 +44,14 @@ test: all
 new-test:
 	./test/new_suite.sh $(suite)
 
-gen-config: all rel/schemas/*.schema
-	./rel/files/gen_config mira-core-bdb-driver.conf rel/schemas
-
 ctags:
 	- ctags -R src/ test/ include/
 
 analyze: all
 	dialyzer ebin/ --fullpath --verbose -Wno_unused
 
-SRCDIR=rel/mira_bdb_port_driver
 install:
 	mkdir -p $(DESTDIR)/home/developer/lib/$(APP_VERSION)
-	cp -a $(SRCDIR) $(DESTDIR)/home/developer/lib/$(APP_VERSION)
 
 
 include docker/docker.mk
