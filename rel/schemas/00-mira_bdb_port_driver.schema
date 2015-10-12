@@ -1,0 +1,158 @@
+%%-*- mode: erlang -*-
+
+%% @doc HTTP Listeners
+{mapping, "listener.http.$name", "mira_bdb_port_driver.http_listeners", [
+        {datatype, ip}
+    ,   {default, {"0.0.0.0", 8070 }}
+    ,   {include_default, "default"}
+]}.
+
+{translation,
+ "mira_bdb_port_driver.http_listeners",
+  fun(Conf) ->
+      HTTP = cuttlefish_variable:filter_by_prefix("listener.http", Conf),
+      [ {list_to_atom("http_listener_" ++ N), IP} || {["listener","http",N], IP} <- HTTP]
+  end
+}.
+
+%% @doc HTTPS Listeners
+{mapping, "listener.https.$name", "mira_bdb_port_driver.https_listeners", [
+        {datatype, string}
+    ,   {default, "0.0.0.0:8071 ./priv/ssl/certificate.pem ./priv/ssl/key.pem"}
+    ,   {include_default, "default"}
+]}.
+
+{translation,
+ "mira_bdb_port_driver.https_listeners",
+  fun(Conf) ->
+
+    HTTPS = cuttlefish_variable:filter_by_prefix("listener.https", Conf),
+
+    Crack = fun(Name, S) ->
+        [StrIpPort, CertFile, KeyFile] = string:tokens(S, " "),
+        [StrIp, StrPort]  = string:tokens(StrIpPort, ":"),
+        {ok, Ip} = inet:parse_address(StrIp),
+        {list_to_atom("https_listener_" ++ Name), {Ip, list_to_integer(StrPort), CertFile, KeyFile}}
+    end,
+
+    [Crack(N, V) || {["listener","https",N], V} <- HTTPS]
+  end
+}.
+
+
+%% @doc IP Checker rules for http interface. Comma-seperated list of 
+%%      routing_prefix/mask (i.e. CIDR notation) entries
+%%      Example: 10.2.2.0/24,192.168.0.1/32,127.0.0.0/24
+{mapping, "ip_checker.$name", "mira_bdb_port_driver.ip_checker", [
+        {datatype, string}
+    ,   {default, "127.0.0.1/24,197.221.55.224/27,197.189.208.160/27,196.35.109.50/32,197.189.228.64/26"}
+    ,   {include_default, "all"}
+]}.
+
+{translation,
+ "mira_bdb_port_driver.ip_checker",
+  fun(Conf) ->
+
+    HttpIpRules = lists:filter(
+    fun({K, _V}) ->
+       cuttlefish_variable:is_fuzzy_match(K, string:tokens("ip_checker.$name", "."))
+    end,
+    Conf),
+
+    Explode = fun(StrRules) ->
+
+        Rules = [ string:strip(T) || T <- string:tokens(StrRules, ",")],
+
+        [ CIDR || CIDR <- Rules , CIDR =/= ""]
+
+    end,
+
+    [ {Path, Explode(Rules)} || {[_,Path], Rules} <- HttpIpRules ]
+
+  end
+}.
+
+%% @doc estatsd metric prefix
+%% $SHOST$ will be replaced with the short hostname
+{mapping, "estatsd_metric_prefix", "estatsd.path_prefix", [
+        {datatype, string}
+    ,   {default, "mira_bdb_port_driver.estatsd.per_minute.$SHOST$"}
+]}.
+
+{translation,
+ "estatsd.path_prefix",
+  fun(Conf) ->
+
+    Setting = cuttlefish:conf_get("estatsd_metric_prefix", Conf),
+
+    {ok, Hostname} = inet:gethostname(),
+
+    re:replace(Setting, "[$]SHOST[$]", Hostname, [global, {return, list}])
+
+  end
+}.
+
+
+%% @doc CfgBus Client Key
+%% Your applications ID on the config bus i.e. myapp@host
+%% $SHOST$ will be replaced with the short hostname of the machine
+{mapping, "cfgbus_client_key", "mira_cfg_client_api.client_key", [
+        {datatype, string}
+    ,   {default, "mira_bdb_port_driver@$SHOST$"}
+]}.
+
+{translation,
+ "mira_cfg_client_api.client_key",
+  fun(Conf) ->
+
+    Setting = cuttlefish:conf_get("cfgbus_client_key", Conf),
+
+    {ok, Hostname} = inet:gethostname(),
+
+    re:replace(Setting, "[$]SHOST[$]", Hostname, [global, {return, list}])
+
+  end
+}.
+
+
+%% @doc CfgBus Callback URl
+%% The URL that will be called by the config bus to notify your app
+%% of config changes. $HOSTNAME$ will be expanded to the FQDN hostname 
+%% of the host machine, if the FQDN cannot be determined the short name
+%% will be used.
+{mapping, "cfgbus_callback_url", "mira_cfg_client_api.feedback_url", [
+        {datatype, string}
+    ,   {default, "https://$HOSTNAME$:8071/config/notify"}
+]}.
+
+{translation,
+ "mira_cfg_client_api.feedback_url",
+  fun(Conf) ->
+
+    Setting = cuttlefish:conf_get("cfgbus_callback_url", Conf),
+
+    {ok, Hostname} = inet:gethostname(),
+
+    ReplaceWith =
+    case inet:gethostbyname(Hostname) of
+    {ok, {hostent, "localhost", _, _, _, _}} ->
+        Hostname;
+    {ok, {hostent, Fqdn, _, _, _, _}} ->
+        Fqdn;
+    _ ->
+        Hostname
+    end,
+
+    re:replace(Setting, "[$]HOSTNAME[$]", ReplaceWith, [global, {return, list}])
+
+  end
+}.
+
+
+%% @doc UUID - 12 character hex string to use as the MAC in 
+%% UUID generation.
+{mapping, "uuid_mac", "mira_uuid_server.node_mac", [
+        {datatype, string}
+    ,   {default, "001122334455"}
+]}.
+

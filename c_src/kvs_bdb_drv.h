@@ -18,7 +18,7 @@ typedef struct _drv_cfg drv_cfg;
 struct _drv_cfg {
     DB_ENV* penv;
     DB*     pdb;
-    
+
     char* data_dir;
     char* db_name;
     char* rep_if;

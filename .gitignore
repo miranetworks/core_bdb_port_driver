@@ -5,3 +5,10 @@ c_src/*.o
 priv/*.so
 /benchmark
 /ebin
+/.generated.configs
+/.rebar
+c_src/kvs_bdb_drv.d
+erl_crash.dump
+/priv/ssl
+log
+tags

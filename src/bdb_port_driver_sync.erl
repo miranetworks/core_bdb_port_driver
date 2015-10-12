@@ -92,11 +92,11 @@ terminate(_, _) ->
 
 sync_and_do_callback(Db, Fun) ->
 
-    T1 = now(),
+    T1 = os:timestamp(),
 
     ok = bdb_store:sync(Db),
 
-    DiffMs = trunc(timer:now_diff(now(), T1)/1000),
+    DiffMs = trunc(timer:now_diff(os:timestamp(), T1)/1000),
 
     if (Fun =/= undefined) ->
         catch(Fun(Db, DiffMs)),
