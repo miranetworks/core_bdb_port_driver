@@ -172,15 +172,13 @@ loop_do_some_computations(N) ->
         true ->
             ok;
         _ ->
-            random:seed(now()),
+            random:seed(os:timestamp()),
             put(random_seeded, true)
         end,
 
         V1 = random:uniform(1 + N),
 
-        V2 = random:uniform(V1 + N),
-
-        _NewVal = V1 + V2,
+        random:uniform(V1 + N),
 
         loop_do_some_computations(N+1)
 
