@@ -1,22 +1,17 @@
-{application, mira_bdb_port_driver,
-
-    [
-
-    {description, "mira_bdb_port_driver"},
-
-    {vsn, "0.3.1"},
-
-    {id, "mira_bdb_port_driver"},
-
-    {modules,   [
-
-                ]
-    },
-
+% vim: ft=erlang
+{application, mira_bdb_port_driver, [
+    {description, "Mira BDB Port Driver"},
+    {vsn, "0.4.0"},
     {registered, []},
-
-    {applications, [kernel, stdlib]}
-
-    ]
-
-}.
+    {mod, { mira_bdb_port_driver_app, []}},
+    {applications, [
+        kernel
+       ,stdlib
+       ,sasl
+    ]},
+    {env, []},
+    {modules, []},
+    {maintainers, []},
+    {licenses, []},
+    {links, []}
+]}.

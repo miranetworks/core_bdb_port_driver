@@ -1,0 +1,34 @@
+% vim: ft=erlang
+{app_name, "mira_bdb_port_driver"}.  % Name of the application/library, usually prefixed with 'mira_'
+{app_desc, "Mira BDB Port Driver"}.  % Short description of the application/library's purpose
+{git_repo, "git@github.com:miranetworks/core_bdb_port_driver.git"}.  % Git repository
+{mod_prefix, "bdb_port_driver"}.  % Source files will be prefixed to avoid module name collisions
+{library, false}.  % Bootstrap an OTP library instead of application
+
+{release, true}.  % Include release building
+
+{docker, true}.  % Include docker dev environment
+
+{deb_package, true}.  % Include deb package building
+{pkg_name, "mira-bdb-port-driver"}.  % Package name, usually the app_name with underscores replaced by dashes
+{os_user, "bdb_port_driver"}.  % OS user under which the application runs
+
+{cfg_bus, false}.  % Include config bus
+
+{mochiweb, false}.  % Include either mochiweb or webmachine HTTP front-end
+{http_port,  1080}.  % Port to listen on for HTTP connections
+{https_port, 1443}.  % Port to listen on for HTTPS connections
+{access_log, false}.  % Include dedicated access log
+
+{queues, false}.  % Include queue utils
+{snmp_object, "BdbPortDriver"}.  % SNMP object name with the first letter capitalized
+
+{logging, false}.  % Include application log and kernel log rotation
+
+{backup, false}.  % Include backup config
+
+{monitoring, false}.  % Include application monotoring
+
+{uuid, false}.  % Include UUID server
+
+{statsman, false}.  % Include statsman client

@@ -1,19 +1,24 @@
 -module(mira_bdb_port_driver_sup).
+
 -behaviour(supervisor).
 
--export([start_link/0]).
+% API
+-export([
+         start_link/0
+        ]).
 
--export([init/1]).
+% Callbacks
+-export([
+         init/1
+        ]).
 
--spec start_link() -> {ok, pid()}.
+
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+
 init(_) ->
-
-    Specs = [],
-
-    {ok, { {one_for_one, 1, 10}, Specs} }.
-
-%EOF
-
+    ChildSpecs = 
+    [
+    ],
+    {ok, {#{strategy => one_for_one}, ChildSpecs}}.

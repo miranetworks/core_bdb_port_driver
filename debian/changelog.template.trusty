@@ -1,0 +1,5 @@
+mira-bdb-port-driver (#DEB_VERSION#) mira-trusty; urgency=low
+
+  * Debhelper requires a changelog, we don't.
+
+ -- Mira Networks <mira.support@gmail.com>  #DEB_DATETIME#
