@@ -10,20 +10,17 @@
 
     ,xmerl,compiler,syntax_tools
 
-    ]). 
+    ]).
 
 start_link() ->
     start_deps(),
     mira_bdb_port_driver_sup:start_link().
 
 start() ->
-    start_deps(),
-    application:start(mira_cc_subsdb_fe).
+    start_deps().
 
 stop() ->
-    Res = application:stop(mira_cc_subsdb_fe),
-    stop_deps(),
-    Res.
+    stop_deps().
 
 ensure_started(App) ->
     case application:start(App) of
