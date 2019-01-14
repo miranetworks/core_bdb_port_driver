@@ -1,7 +1,7 @@
 % vim: ft=erlang
 {application, mira_bdb_port_driver, [
     {description, "Mira BDB Port Driver"},
-    {vsn, "0.4.1"},
+    {vsn, "0.4.2"},
     {registered, []},
     {applications, [
         kernel
