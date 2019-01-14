@@ -3,15 +3,16 @@
 {app_desc, "Mira BDB Port Driver"}.  % Short description of the application/library's purpose
 {git_repo, "git@github.com:miranetworks/core_bdb_port_driver.git"}.  % Git repository
 {mod_prefix, "bdb_port_driver"}.  % Source files will be prefixed to avoid module name collisions
-{library, false}.  % Bootstrap an OTP library instead of application
+{library, true}.  % Bootstrap an OTP library instead of application
 
-{release, true}.  % Include release building
+{release, false}.  % Include release building
 
 {docker, true}.  % Include docker dev environment
 
 {deb_package, true}.  % Include deb package building
 {pkg_name, "mira-bdb-port-driver"}.  % Package name, usually the app_name with underscores replaced by dashes
 {os_user, "bdb_port_driver"}.  % OS user under which the application runs
+{ppa_release, "trusty"}.  % OS release for PPA
 
 {cfg_bus, false}.  % Include config bus
 

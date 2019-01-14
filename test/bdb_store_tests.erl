@@ -3,8 +3,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--compile(export_all).
-
 insert_test() ->
 
     ok = error_logger:tty(false),
@@ -128,7 +126,7 @@ foldr_test() ->
 
     ?assertEqual({ok, []}, bdb_store:foldr("test", F, [], 1000)),
     ?assertEqual({ok, []}, bdb_store:foldr("test", F, [], 1)),
-   
+
     kill(Pid).
 
 foldr2_test() ->
@@ -239,7 +237,7 @@ foldr_nonlock_test() ->
 
     ?assertEqual({ok, []}, bdb_store:foldr_nonlock("test", F, [], 1000)),
     ?assertEqual({ok, []}, bdb_store:foldr_nonlock("test", F, [], 1)),
-   
+
     kill(Pid).
 
 foldr_nonlock2_test() ->
@@ -298,7 +296,7 @@ bulk_get_test() ->
     ?assertEqual({ok, 100},  bdb_store:count("test")),
 
     ?assertEqual(ok, bdb_store:sync("test")),
-    
+
     ?assertEqual({ok, [{ExpectedKey, "V50"}]}, bdb_store:bulk_get("test", 50, 1)),
 
     kill(Pid).

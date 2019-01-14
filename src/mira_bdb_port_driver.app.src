@@ -3,11 +3,9 @@
     {description, "Mira BDB Port Driver"},
     {vsn, "0.4.1"},
     {registered, []},
-    {mod, { mira_bdb_port_driver_app, []}},
     {applications, [
         kernel
        ,stdlib
-       ,sasl
     ]},
     {env, []},
     {modules, []},

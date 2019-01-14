@@ -31,16 +31,13 @@ if [ $? -eq 0 ]; then
         ${DOCKER_IMAGE} ./docker/container_run ${BASEDIR} $(id -u) $(id -g) "${DOCKER_COMMAND}" 
 else
     WRKDIR=$(pwd)
-    boot2docker ssh -A -t " \
-        docker run \
-            --rm=true \
-            -i \
-            -h devhost \
-            --name ${DOCKER_CONTAINER_NAME} \
-            -v \$(dirname \${SSH_AUTH_SOCK}):\$(dirname \${SSH_AUTH_SOCK}) \
-            -e SSH_AUTH_SOCK=\${SSH_AUTH_SOCK} \
-            -w ${BASEDIR} \
-            -v ${WRKDIR}:${BASEDIR}  \
-            $@ \
-            ${DOCKER_IMAGE} ${DOCKER_COMMAND}"
+    docker run \
+        --rm=true \
+        -i \
+        -h devhost \
+        --name ${DOCKER_CONTAINER_NAME} \
+        -w ${BASEDIR} \
+        -v ${WRKDIR}:${BASEDIR}  \
+        $@ \
+        ${DOCKER_IMAGE} ${DOCKER_COMMAND}
 fi

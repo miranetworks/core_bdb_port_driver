@@ -3,11 +3,5 @@
 /_build/
 /rebar.lock
 /tags
-data
-c_src/*.o
-priv/*.so
-/benchmark
-c_src/kvs_bdb_drv.d
-erl_crash.dump
-/priv/ssl
-/log
+.tags
+*~

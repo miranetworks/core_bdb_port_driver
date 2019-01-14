@@ -19,7 +19,10 @@ dmake: $(DOCKER_BUILT)
 	docker/run $(DOCKER_IMAGE) $(DOCKER_CONTAINER_NAME) "make"
 
 drun: $(DOCKER_BUILT)
-	docker/run $(DOCKER_IMAGE) $(DOCKER_CONTAINER_NAME) "make run" -t
+	docker/run $(DOCKER_IMAGE) $(DOCKER_CONTAINER_NAME) "make run"
+
+dtest: $(DOCKER_BUILT)
+	docker/run $(DOCKER_IMAGE) $(DOCKER_CONTAINER_NAME) "make test suite=${suite}"
 
 d%: $(DOCKER_BUILT)
 	docker/run $(DOCKER_IMAGE) $(DOCKER_CONTAINER_NAME) "make $(@:d%=%)"
