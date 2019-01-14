@@ -1,3 +1,7 @@
+TODO!
+========
+The driver part of this needs to be fixed as this is not a working branch
+
 
 This is a library application that provides an erlang port driver to 
 libdb - Berkeley DB for fast & efficient KV storage.
